@@ -20,29 +20,29 @@
 | **Saqib Daniel Mohammad Cabrejos** | _saqib.mohammad@mi.unc.edu.ar_ |
 
 ## 1. Introducción
-Dentro del desarrollo de aplicaciones informaticas resulta sumamente comun trabajar con diferentes niveles de abstraccion, lo que permite organizar la complejidad de un sistema. Por ejemplo, en las niveles superiores se trabajan con lenguajes de alto nivel ya que brindan herramientas mas accesibles para el programador, facilitando notablemente la implementacion de soluciones sin tener la necesidad de interactuar de manera directa con el hardware. Sin embargo, en cierta forma, todo programa depende de los mecanismos de bajo nivel, los cuales permiten su efectiva ejecucion.
+Dentro del desarrollo de aplicaciones informáticas resulta habitual trabajar con diferentes niveles de abstracción, lo que permite organizar la complejidad de los sistemas. Por ejemplo, en los niveles superiores se emplean con lenguajes de alto nivel ya que brindan herramientas más accesibles para el programador, facilitando notablemente la implementación de soluciones sin necesidad de interactuar directamente con el hardware. Sin embargo, en última instancia, todo programa depende de los mecanismos de bajo nivel, los cuales permiten su efectiva ejecución.
 
-Por lo tanto, una forma de poder estar mas cerca del funcionamiento interno de un sistema, es a traves del lenguaje ensamblador, el cual permite trabajar de manera bastante directa con todos los recursos que se encuentran en el hardware. Ahora bien, para lograr establecer una comunicacion entre distintos niveles se tiene en cuenta lo que se conoce como Convencion de Llamadas, se trata de un conjunto de reglas que indican como se organizan las tareas. 
+Por lo tanto, una forma de comprender el funcionamiento interno de un sistema, es a través del lenguaje ensamblador, ya que permite operar de manera bastante directa sobre los recursos del hardware. Ahora bien, para lograr una comunicación entre distintos niveles se tiene en cuenta lo que se conoce como *Convención de Llamadas*, se trata de un conjunto de reglas que establecen cómo se pasan los parámetros, cómo se gestionan los registros y cómo retornan valores entre funciones convocadas. 
 
-A partir de esta idea, en el presente trabajo practico se desea integrar herramientas provenientes de los distintos niveles de abstraccion, lo que permitira conocer y comprender como interactuan las capas de un sistema. Para ello, se propone la siguiente arquitectura:
-- **Capa Superior:** Python
-- **Capa Intermedia:** C
-- **Capa Inferior:**  ASM
+A partir de esta idea, en el presente trabajo práctico se desea integrar herramientas correspondientes a los distintos niveles de abstraccion, con la finalidad de conocer y comprender como interactúan las diferentes capas de un sistema. Para ello, se propone la siguiente arquitectura:
+- **Capa Superior:** Lenguaje Python
+- **Capa Intermedia:** Lenguaje C
+- **Capa Inferior:**  Lenguaje ASM
 
 ---
 
 ## 2. Objetivo
-El objetivo principal del trabajo practico es obtener el índice GINI de la República Argentina desde la API REST del Banco Mundial, y realizar una operación de truncamiento e incremento numérico de dicho índice.
+El objetivo principal del trabajo práctico es obtener el índice GINI de la República Argentina desde la API REST del Banco Mundial, y realizar una operación de truncamiento e incremento numérico de dicho índice.
 
 Para alcanzar este resultado, la solución se estructuró de manera incremental:
-- **Primera Iteracion:** Implementación de alto nivel utilizando Python como cliente API y C como capa intermedia de procesamiento numérico.
-- **Segunda Iteracion:** Introducción de la capa inferior en Lenguaje Ensamblador (x86-64) para realizar el procesamiento nativo. Además, se desarrolló un programa en C puro (`main.c`) dedicado exclusivamente a depurar y observar el comportamiento de la pila (Stack) utilizando GDB.
+- **Primera Iteración:** Implementación de alto nivel utilizando Python como cliente API y C como capa intermedia de procesamiento numérico.
+- **Segunda Iteración:** Introducción de la capa inferior en Lenguaje Ensamblador (x86-64) para realizar el procesamiento nativo. Además, se desarrolló un programa en C puro (`main.c`) dedicado exclusivamente a depurar y observar el comportamiento de la pila (Stack) utilizando GDB.
 
 Finalmente, el flujo de desarrollo, compilación y ejecución fue fuertemente optimizado mediante la inclusión de un `Makefile` y un script automatizado `setup.sh`.
 
 ## 2. Arquitectura e Implementación
 
-### 2.1. Primera Iteracion
+### 2.1. Primera Iteración
 #### Capa Superior: Cliente Python (`api_Rest.py`)
 Constituye el punto de entrada de la aplicación en el espacio de usuario.
 1. Ejecuta una petición HTTP GET síncrona (bloqueante) a la API del Banco Mundial para extraer el JSON con las respuestas.
@@ -101,7 +101,7 @@ print("Array resultante procesado por ASM (+1 redondeo):")
 print(resultados_enteros)
 ```
 
-5. Grafica una curva con los datos extraidos
+5. Grafica una curva con los datos extraídos
 ```python
 # Graficamos los datos
 anios_enteros = [int(a) for a in years]
@@ -121,7 +121,7 @@ plt.show()
 ```
 
 #### Capa Intermedia: Procesamiento en C (`float_to_int.c`)
-En esta primera iteración, el lenguaje C asume completamente la responsabilidad del procesamiento de los datos.
+En esta primera iteración, el *Lenguaje C* asume completamente la responsabilidad del procesamiento de los datos.
 - Implementa la función `float_to_int`, la cual recibe un valor de tipo `float`.
 - Realiza la conversión de tipo mediante casting explícito a entero.
 - Aplica la operación requerida por la consigna, sumando una unidad al valor convertido `((int)(indice_gini + 1))`.
@@ -138,7 +138,7 @@ int float_to_int(float indice_gini){
 ### 2.2. Segunda Iteracion
 
 #### Capa Superior: Cliente Python (`api_Rest.py`)
-No sufre modificaciones. Continua siendo el punto de entrada de la aplicación en el espacio de usuario y se mantienen sus funciones.
+No sufre modificaciones. Se mantiene como el punto de entrada de la aplicación en el espacio de usuario.
 1. Ejecuta una petición HTTP GET síncrona (bloqueante) a la API del Banco Mundial para extraer el JSON con las respuestas.
 2. Filtra y limpia los datos nulos para rescatar únicamente los índices de Argentina.
 3. Invoca la librería dinámica compilada (`libgini.so`) mediante `ctypes`, pasando el valor decimal como `float`.
@@ -206,7 +206,7 @@ float_to_int_asm:
 ## 3. Diagramas del Sistema
 A continuación, se ilustran tanto la arquitectura en bloque como el flujo de interacciones del sistema:
 
-### 3.1. Primera Iteracion
+### 3.1. Primera Iteración
 
 #### Diagrama de Flujo
 ![Mermaid: Diagrama de Flujo](TP2/img/Diagrama_Flujo_Iteracion_1.png)
@@ -287,13 +287,13 @@ make clean    # Limpia artefactos intermedios y binarios producidos
 ```
 ---
 ## 6. Conclusion
-El desarrollo de este trabajo permitio comprender de forma practica como es la interaccion entre distintos niveles de abstraccion en un sistema de software. En el mismo, se trabajo integrando los lenguajes de Python, C y ASM.
+El desarrollo de este trabajo permitió comprender de forma práctica cómo se produce la interaccion entre distintos niveles de abstracción en un sistema de software. En el mismo, se integraron los lenguajes de *Python, C y ASM*.
 
-La solucion de la Primera Iteracion, que implicaba utilizar los lenguajes Python y C,resulto ser una forma bastante funcional para abordar el problema propuesto. Por otro lado, el desarrollo seguido en la Segunda Iteracion, en la que fue incorporado el codigo en lenguaje ASM, permitio profundizar en el funcionamiento interno del sistema, particularmente, en lo relacionado a la Convencion de Llamadas.
+La solución correspondiente a la *Primera Iteración*, basada en el uso de los lenguajes *Python y C*, resultó ser una alternativa funcional para abordar el problema propuesto. Por otro lado, el desarrollo seguido en la *Segunda Iteracioón*, que implicaba incorporar código en lenguaje *ASM*, permitió profundizar en el funcionamiento interno del sistema, particularmente en lo relacionado a la *Convención de Llamadas* y manejo de registros.
 
-En esta Segunda Iteracion, se trabajo con una interesante herramienta de depuracion (GDB), la cual fue de utilidad para observar detalladamente el comportamiento del programa a bajo nivel, se pudo observar la organizacion del stack y los registros, asi tambien, la dinamica que seguian conforme se iba ejecutando el programa.
+Asimismo, en esta *Segunda Iteración*, se empleó una interesante herramienta de depuración *(GDB)*, la cual permitió analizar el comportamiento del programa a bajo nivel, se pudo observar la organización del stack y los registros, así también, la dinámica que seguían conforme se iba ejecutando el programa.
 
-Para terminar, a traves de este trabajo se logro adquirir una vision mas integral sobre la relacion entre el software y el hardware.
+Para terminar, a través de este trabajo se logró adquirir una visión más integral sobre la relación entre el software y el hardware.
 
 ---
 ## 7. Bibliografia
