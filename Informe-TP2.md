@@ -20,17 +20,32 @@
 | **Saqib Daniel Mohammad Cabrejos** | _saqib.mohammad@mi.unc.edu.ar_ |
 
 ## 1. Introducción y Objetivo
-El presente informe documenta el desarrollo y culminación del Trabajo Práctico 2, cuyo objetivo principal es obtener el índice GINI de la República Argentina desde la API REST del Banco Mundial, y realizar una operación de truncamiento e incremento numérico de dicho índice.
+Dentro del desarrollo de aplicaciones informaticas resulta sumamente comun trabajar con diferentes niveles de abstraccion, lo que permite organizar la complejidad de un sistema. Por ejemplo, en las niveles superiores se trabajan con lenguajes de alto nivel ya que brindan herramientas mas accesibles para el programador, facilitando notablemente la implementacion de soluciones sin tener la necesidad de interactuar de manera directa con el hardware. Sin embargo, en cierta forma, todo programa depende de los mecanismos de bajo nivel, los cuales permiten su efectiva ejecucion.
+
+Por lo tanto, una forma de poder estar mas cerca del funcionamiento interno de un sistema, es a traves del lenguaje ensamblador, el cual permite trabajar de manera bastante directa con todos los recursos que se encuentran en el hardware. Ahora bien, para lograr establecer una comunicacion entre distintos niveles se tiene en cuenta lo que se conoce como Convencion de Llamadas, se trata de un conjunto de reglas que indican como se organizan las tareas. 
+
+A partir de esta idea, en el presente trabajo practico se desea integrar herramientas provenientes de los distintos niveles de abstraccion, lo que permitira conocer y comprender como interactuan las capas de un sistema. Para ello, se propone la siguiente arquitectura:
+- **Capa Superior:** Python
+- **Capa Intermedia:** C
+- **Capa Inferior:**  ASM
+
+## 2. Objetivo
+El objetivo principal del trabajo practico es obtener el índice GINI de la República Argentina desde la API REST del Banco Mundial, y realizar una operación de truncamiento e incremento numérico de dicho índice.
 
 Para alcanzar este resultado, la solución se estructuró de manera incremental:
-- **Iteración 1:** Implementación de alto nivel utilizando Python como cliente API y C como capa intermedia de procesamiento numérico.
-- **Iteración 2:** Introducción de la capa inferior en Lenguaje Ensamblador (x86-64) para realizar el procesamiento nativo. Además, se desarrolló un programa en C puro (`main.c`) dedicado exclusivamente a depurar y observar el comportamiento de la pila (Stack) utilizando GDB.
+- **Primera Iteracion:** Implementación de alto nivel utilizando Python como cliente API y C como capa intermedia de procesamiento numérico.
+- **Segunda Iteracion:** Introducción de la capa inferior en Lenguaje Ensamblador (x86-64) para realizar el procesamiento nativo. Además, se desarrolló un programa en C puro (`main.c`) dedicado exclusivamente a depurar y observar el comportamiento de la pila (Stack) utilizando GDB.
 
 Finalmente, el flujo de desarrollo, compilación y ejecución fue fuertemente optimizado mediante la inclusión de un `Makefile` y un script automatizado `setup.sh`.
 
 ## 2. Arquitectura e Implementación
 
-### Capa Superior: Cliente Python (`api_Rest.py`)
+### 2.1. Primera Iteracion
+
+
+### 2.2. Segunda Iteracion
+
+#### Capa Superior: Cliente Python (`api_Rest.py`)
 Constituye el punto de entrada de la aplicación en el espacio de usuario.
 1. Ejecuta una petición HTTP GET síncrona (bloqueante) a la API del Banco Mundial para extraer el JSON con las respuestas.
 2. Filtra y limpia los datos nulos para rescatar únicamente los índices de Argentina.
@@ -54,15 +69,23 @@ Motor lógico principal del trabajo práctico. Se adhiere estrictamente a la con
 ---
 
 ## 3. Diagramas del Sistema
-
 A continuación, se ilustran tanto la arquitectura en bloque como el flujo de interacciones del sistema:
 
-### Diagrama de Flujo
+### 3.1. Primera Iteracion
+
+#### Diagrama de Flujo
 ![Mermaid: Diagrama de Flujo](TP2/img/flowchart.png)
 
-### Diagrama de Secuencias
+#### Diagrama de Secuencias
 ![Mermaid: Diagrama de Secuencias](TP2/img/secuence_diagram.png)
 
+### 3.2. Segunda Iteracion
+
+#### Diagrama de Flujo
+![Mermaid: Diagrama de Flujo](TP2/img/flowchart.png)
+
+#### Diagrama de Secuencias
+![Mermaid: Diagrama de Secuencias](TP2/img/secuence_diagram.png)
 ---
 
 ## 4. Análisis de Memoria y Pila (Stack) con GDB
