@@ -1,4 +1,23 @@
-# Informe Trabajo Práctico 2 - Entrega Final (Iteraciones 1 y 2)
+# Trabajo Practico N°2
+
+### Asignatura: Sistemas de Computacion
+
+**Facultad de Ciencias Exactas, Físicas y Naturales (UNC)**
+
+---
+
+* **Grupo:** Sudo Make A Sandwich
+* **Profesores:** Miguel Angel Solinas y Javier Alejandro Jorge
+
+---
+
+### Integrantes y Contacto
+
+| Nombre y Apellido | Correo Electrónico |
+| :--- | :--- |
+| **Sergio Andres Fernandez Segovia** | _sergio.fernandez.segovia@mi.unc.edu.ar_ |
+| **Enzo Leonel Laura Surco** | _enzo.laura.surco@mi.unc.edu.ar_ |
+| **Saqib Daniel Mohammad Cabrejos** | _saqib.mohammad@mi.unc.edu.ar_ |
 
 ## 1. Introducción y Objetivo
 El presente informe documenta el desarrollo y culminación del Trabajo Práctico 2, cuyo objetivo principal es obtener el índice GINI de la República Argentina desde la API REST del Banco Mundial, y realizar una operación de truncamiento e incremento numérico de dicho índice.
@@ -17,6 +36,7 @@ Constituye el punto de entrada de la aplicación en el espacio de usuario.
 2. Filtra y limpia los datos nulos para rescatar únicamente los índices de Argentina.
 3. Invoca la librería dinámica compilada (`libgini.so`) mediante `ctypes`, pasando el valor decimal como `float`.
 4. Recibe e imprime el resultado final calculado por los niveles subyacentes.
+5. Grafica una curva 
 
 ### Capa Intermedia: Interfaz C (`float_to_int.c` y `main.c`)
 En esta versión definitiva, C funciona puramente como un "wrapper" sin apenas sobrecarga hacia Ensamblador:
