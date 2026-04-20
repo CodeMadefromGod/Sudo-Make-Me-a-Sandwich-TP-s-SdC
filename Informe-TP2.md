@@ -13,7 +13,7 @@ Finalmente, el flujo de desarrollo, compilación y ejecución fue fuertemente op
 
 ### Capa Superior: Cliente Python (`api_Rest.py`)
 Constituye el punto de entrada de la aplicación en el espacio de usuario.
-1. Ejecuta una petición HTTP GET asíncrona a la API del Banco Mundial para extraer el JSON con las respuestas.
+1. Ejecuta una petición HTTP GET síncrona (bloqueante) a la API del Banco Mundial para extraer el JSON con las respuestas.
 2. Filtra y limpia los datos nulos para rescatar únicamente los índices de Argentina.
 3. Invoca la librería dinámica compilada (`libgini.so`) mediante `ctypes`, pasando el valor decimal como `float`.
 4. Recibe e imprime el resultado final calculado por los niveles subyacentes.
