@@ -1,62 +1,97 @@
-# Informe Trabajo Práctico 2 - Primera Iteración
+# Informe Trabajo Práctico 2 - Entrega Final (Iteraciones 1 y 2)
 
 ## 1. Introducción y Objetivo
-Este informe documenta la primera iteración del trabajo práctico, cuyo objetivo es recuperar el índice GINI de la República Argentina desde la API REST del Banco Mundial y procesarlo. Cumpliendo con la consigna, en esta instancia inicial la solución ha sido implementada exclusivamente utilizando Python (capa superior) y C (capa intermedia), sin la inclusión de lenguaje ensamblador todavía.
+El presente informe documenta el desarrollo y culminación del Trabajo Práctico 2, cuyo objetivo principal es obtener el índice GINI de la República Argentina desde la API REST del Banco Mundial, y realizar una operación de truncamiento e incremento numérico de dicho índice.
+
+Para alcanzar este resultado, la solución se estructuró de manera incremental:
+- **Iteración 1:** Implementación de alto nivel utilizando Python como cliente API y C como capa intermedia de procesamiento numérico.
+- **Iteración 2:** Introducción de la capa inferior en Lenguaje Ensamblador (x86-64) para realizar el procesamiento nativo. Además, se desarrolló un programa en C puro (`main.c`) dedicado exclusivamente a depurar y observar el comportamiento de la pila (Stack) utilizando GDB.
+
+Finalmente, el flujo de desarrollo, compilación y ejecución fue fuertemente optimizado mediante la inclusión de un `Makefile` y un script automatizado `setup.sh`.
 
 ## 2. Arquitectura e Implementación
 
-### Capa Superior: Python (`api_Rest.py`)
-El script de Python actúa como el punto de entrada y cliente de la aplicación:
-1. **Recolección de datos:** Ejecuta una petición `GET` a la API del Banco Mundial a través de la librería `requests`.
-2. **Filtrado:** Analiza el archivo JSON obtenido, localizando todos los registros de Argentina y descartando los datos nulos (`None`). Luego, identifica el índice de GINI correspondiente al año más reciente.
-3. **Integración con C:** Importa la librería de sistema `ctypes` para cargar dinámicamente la biblioteca compartida compilada en C (`libgini.so`).
-4. **Ejecución y Feedback:** Define la firma y los tipos de dato (invocando argumento como `float` y retorno de tipo `int`), ejecuta la función expuesta por C y finalmente imprime por consola el índice convertido.
+### Capa Superior: Cliente Python (`api_Rest.py`)
+Constituye el punto de entrada de la aplicación en el espacio de usuario.
+1. Ejecuta una petición HTTP GET síncrona (bloqueante) a la API del Banco Mundial para extraer el JSON con las respuestas.
+2. Filtra y limpia los datos nulos para rescatar únicamente los índices de Argentina.
+3. Invoca la librería dinámica compilada (`libgini.so`) mediante `ctypes`, pasando el valor decimal como `float`.
+4. Recibe e imprime el resultado final calculado por los niveles subyacentes.
 
-### Capa Intermedia: C (`float_to_int.c`)
-En esta primera instancia, el archivo en C cumple la función de "puente" y lógica de casteo de prueba:
-- Recibe el parámetro numérico base como coma flotante (`float`).
-- Ejecuta una operación de *casting* directa desde C a entero (`int`).
-- Al resultado truncado le suma `1` tal como lo especifica el requerimiento.
-- Retorna el valor final calculado para que sea consumido y mostrado por la capa superior.
+### Capa Intermedia: Interfaz C (`float_to_int.c` y `main.c`)
+En esta versión definitiva, C funciona puramente como un "wrapper" sin apenas sobrecarga hacia Ensamblador:
+- En la librería compartida, procesa los llamados de Python derivándolos a `float_to_int_asm` recibiendo el tipo `float`.
+- Para propósitos de *debugging* del stack, se generó un binario auto-contenido (`debug_gini` a partir de `main.c`) que carga los flotantes temporalmente extraídos a un `gini_data.txt` para iterar de forma pura las llamadas a ASM. Esto prevé el enorme *overhead* o complejidad que implicaría depurar el intérprete de Python completo con GDB.
 
-### Diagrama de Bloques (Primera Iteración)
+### Capa Inferior: Ensamblador x86-64 (`float_to_int_asm.asm`)
+Motor lógico principal del trabajo práctico. Se adhiere estrictamente a la convención **ABI de System V AMD64**:
+- Recibe el argumento de punto flotante a través de los registros vectoriales SSE (registro `xmm0` en particular).
+- Lo transfiere localmente a la memoria de la pila mediante el stack frame para lectura/escritura predecible.
+- Utiliza la instrucción de conversión directa con truncamiento en procesadores paralelos (`cvttss2si`) hacia el registro `eax` (tamaño de 32-bits / dword).
+- Modifica el resultado entero directo truncado sumando la unidad requerida por consigna (`inc eax`).
+- Retorna el valor alojado en `rax`.
 
-A continuación, se presenta un diagrama esquemático generado con **Mermaid** (soportado nativamente por GitHub) para ilustrar la arquitectura y el flujo de los datos implementados hasta ahora:
+---
 
-```mermaid
-graph TD
-    A[Capa Superior: Script Python api_Rest.py] -->|1. Petición GET| B((API Banco Mundial))
-    B -->|2. Respuesta JSON| A
-    A -->|3. Filtra Índice de Argentina| A
-    A -->|4. Envía float mediante ctypes| C[Capa Intermedia C: libgini.so]
-    C -->|5. Casteo a int y suma +1| C
-    C -->|6. Retorna valor int| A
-    A -->|7. Imprime resultado final| D((Consola / Usuario))
+## 3. Diagramas del Sistema
+
+A continuación, se ilustran tanto la arquitectura en bloque como el flujo de interacciones del sistema:
+
+### Diagrama de Flujo
+![Mermaid: Diagrama de Flujo](TP2/img/flowchart.png)
+
+### Diagrama de Secuencias
+![Mermaid: Diagrama de Secuencias](TP2/img/secuence_diagram.png)
+
+---
+
+## 4. Análisis de Memoria y Pila (Stack) con GDB
+
+Como parte vital de la Iteración 2, se hizo uso intensivo del ejecutable puente en C (`debug_gini`) para observar visualmente la asignación de variables de entorno, carga/desplazamiento de registros y particularmente el diseño en memoria de la pila (*Stack*), deteniendo paso a paso los llamados al submódulo en ensamblador. 
+
+Se analizaron 3 estados críticos del marco de la pila durante la iteración 1 del loop, correspondientes al truncado e incremento desde nuestro primer registro GINI de **`42.4`** a **`43`**.
+
+### 1. Estado Previo de Variables (Antes del Llamado)
+En el punto de pausa de GDB en `main.c:55`, el sistema gestiona dinámicamente nuestra memoria reservada en el *Heap* correctamente. Las instancias de variables intervinientes `test_vals` (`0x55555555a490`) y `resultados` (`0x55555555a4c0`) están intactas, listas para invocar el cast del flotante situado en índice 0.  
+
+![GDB: Estado Previo al Llamado de Ensamblador](TP2/img/call_func_asm.png)
+
+### 2. Stack Frame y Flotantes durante Rutina Ensamblador
+Al profundizar el paso al interior de NASM, lo primero que se ejecuta es el **prólogo del stack** (`push rbp`, `mov rbp, rsp` y `sub rsp, 16`). Esto resguarda de forma segura el marco de la función llamadora (C) y establece nuestro propio alcance en la pila (*stack frame*) para operar con almacenamiento local.
+A nivel de registros, el pasaje del argumento se concreta recibiendo el valor de punto flotante directamente en el registro vectorial **`xmm0`**, respetando la convención (ABI). Para cumplir la consigna explícita de usar referencias a la memoria apilada, transferimos este parámetro al _stack frame_ recién creado a través de: `movss dword [rbp-4], xmm0`.  
+Dentro del recuadro inferior de *Variables*, confirmamos al volcar la pila local (`x/8xw $rsp`), la existencia predecible y exacta en este offset de su estándar IEEE-754: **`0x4229999a`** (42.4 representado binariamente). 
+Acto seguido, la variable es leída de vuelta (`cvttss2si`) para truncarla a 42 en `eax` e invocar el incremento (`inc eax`).
+
+![GDB: Comportamiento Interno en Rutina Ensamblador](TP2/img/exec_func_asm.png)
+
+### 3. Regreso y Actualización (Luego del Llamado)
+Con la pila saneada en el ASM (*epílogo*), el valor saliente del acumulador `rax` alberga a su retorno el éxito de la función, siendo su hexadecimal `0x00002b` o el equivalente estricto a **43**. Esta cifra se implanta limpia y puramente en nuestro puntero de índice inicial del array `resultados` sin leaks ni corrupciones de buffer.
+
+![GDB: Post Ejecución Devolviendo Datos a Caller](TP2/img/ret_func_asm.png)
+
+---
+
+## 5. Instrucciones de Construcción y Ejecución Mejoradas (Iteración 2)
+
+El proyecto actual posee todo su flujo de despliegue consolidado para que otros ambientes puedan consumirlo fluidamente:
+
+1. **Automatización de Setup y Componentes (Recomendado)**
+Se generó el script envolvente `setup.sh`, encargado de forzar la creación íntegra del entorno en bash, su virtualización python, librerías, y despachar recursivamente nuestra compilación nativa en MAKE:
+```bash
+cd TP2
+chmod +x setup.sh
+./setup.sh
 ```
 
-## 3. Guía de Ejecución
-Para poder ejecutar correctamente, primero se debe compilar el módulo de C en una librería dinámica compartida:
+2. **Ejecución Principal de la Solución**
+Asegurando estar en el ambiente provisto `.venv` (ya resuelto si ejecutaste el setup):
 ```bash
-gcc -shared -o libgini.so -fPIC float_to_int.c
-```
-Luego, se recomienda preparar un entorno virtual (`venv`) antes de ejecutar, para no interferir con las librerías globales del sistema:
-```bash
-# 1. Crear entorno virtual (ejecutar una sola vez)
-python3 -m venv venv
-
-# 2. Activar el entorno virtual
-source venv/bin/activate  # En Linux/Mac
-# venv\Scripts\activate   # En Windows
-
-# 3. Instalar las dependencias necesarias
-pip install requests
-
-# 4. Invocar el programa
 python3 api_Rest.py
 ```
 
-## 4. Próximos pasos (Segunda Iteración)
-Para la entrega final, siguiendo los requerimientos del trabajo práctico:
-- El código en C dejará de realizar la operación aritmética y el redondeo directamente, y pasará a invocar una subrutina escrita nativamente en **Ensamblador (x86-64)**.
-- Se implementará el uso correcto de las convenciones de pasaje de parámetros mediante el **Stack**.
-- Se llevará a cabo una sesión de depuración con **GDB** registrando el comportamiento y las direcciones de memoria del *stack frame* (antes, durante y después del llamado a la rutina de ensamblador).
+3. **Arquitectura con Makefile (Opcional - Debug Técnico)**
+Para modificar capas medias, depurar GDB u obligar ensambles de archivos parciales (`.o`, `.so` o binarios), el `Makefile` simplifica y ordena todas las piezas nativas C-ASM que conviven bajo nuestra abstracción:
+```bash
+make          # Construye librerías dinámicas y ejecutables de forma integral
+make clean    # Limpia artefactos intermedios y binarios producidos
+```
