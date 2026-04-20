@@ -83,7 +83,7 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-2. **Ejecución Pincipal de la Solución**
+2. **Ejecución Principal de la Solución**
 Asegurando estar en el ambiente provisto `.venv` (ya resuelto si ejecutaste el setup):
 ```bash
 python3 api_Rest.py
