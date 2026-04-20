@@ -19,7 +19,7 @@
 | **Enzo Leonel Laura Surco** | _enzo.laura.surco@mi.unc.edu.ar_ |
 | **Saqib Daniel Mohammad Cabrejos** | _saqib.mohammad@mi.unc.edu.ar_ |
 
-## 1. Introducción y Objetivo
+## 1. Introducción
 Dentro del desarrollo de aplicaciones informaticas resulta sumamente comun trabajar con diferentes niveles de abstraccion, lo que permite organizar la complejidad de un sistema. Por ejemplo, en las niveles superiores se trabajan con lenguajes de alto nivel ya que brindan herramientas mas accesibles para el programador, facilitando notablemente la implementacion de soluciones sin tener la necesidad de interactuar de manera directa con el hardware. Sin embargo, en cierta forma, todo programa depende de los mecanismos de bajo nivel, los cuales permiten su efectiva ejecucion.
 
 Por lo tanto, una forma de poder estar mas cerca del funcionamiento interno de un sistema, es a traves del lenguaje ensamblador, el cual permite trabajar de manera bastante directa con todos los recursos que se encuentran en el hardware. Ahora bien, para lograr establecer una comunicacion entre distintos niveles se tiene en cuenta lo que se conoce como Convencion de Llamadas, se trata de un conjunto de reglas que indican como se organizan las tareas. 
@@ -46,16 +46,95 @@ Finalmente, el flujo de desarrollo, compilación y ejecución fue fuertemente op
 #### Capa Superior: Cliente Python (`api_Rest.py`)
 Constituye el punto de entrada de la aplicación en el espacio de usuario.
 1. Ejecuta una petición HTTP GET síncrona (bloqueante) a la API del Banco Mundial para extraer el JSON con las respuestas.
+```python
+import requests
+import ctypes
+import matplotlib.pyplot as plt
+
+results = []
+years = []
+last_gini_index = None
+file = None
+
+response = requests.get('https://api.worldbank.org/v2/en/country/all/indicator/SI.POV.GINI?format=json&date=2000:2026&per_page=32500&page=1&country=%22Argentina%22')
+if response:
+    print("OK")
+else:
+    print("Error:", response.status_code)
+```
+
 2. Filtra y limpia los datos nulos para rescatar únicamente los índices de Argentina.
+```python
+data = response.json()
+not_metadata = data[1]
+
+for i in not_metadata:
+    if i["country"]["value"] == "Argentina":
+        if i["value"] is not None: 
+            print("Gini index from Argentina in", i["date"], "is:", i["value"])
+            results.append(i["value"])
+            years.append(i["date"])
+```
 3. Invoca la librería dinámica compilada (`libgini.so`) mediante `ctypes`, pasando el valor decimal como `float`.
+```python
+# Cargar la libreria compartida
+lib = ctypes.CDLL("./libgini.so")
+
+# Definimos los argumentos de la funcion y el tipo de retorno
+lib.float_to_int.argtypes = [ctypes.c_float]
+lib.float_to_int.restype = ctypes.c_int
+
+# Procesamos TODO el array dinámicamente llamando a la función en ASM
+resultados_enteros = []
+for val in results:
+    entero_redondeado = lib.float_to_int(float(val))
+    resultados_enteros.append(entero_redondeado)
+```
+
 4. Recibe e imprime el resultado final calculado por los niveles subyacentes.
+```python
+print()
+print("Array original de índices Gini obtenidos (float):")
+print(results)
+print()
+print("Array resultante procesado por ASM (+1 redondeo):")
+print(resultados_enteros)
+```
+
 5. Grafica una curva con los datos extraidos
+```python
+# Graficamos los datos
+anios_enteros = [int(a) for a in years]
 
-#### Capa Intermedia: Interfaz C (`float_to_int.c` y `main.c`)
-En este punto, C funciona puramente como un "wrapper" sin apenas sobrecarga hacia Ensamblador:
-- En la librería compartida, procesa los llamados de Python derivándolos a `float_to_int_asm` recibiendo el tipo `float`.
-- Para propósitos de *debugging* del stack, se generó un binario auto-contenido (`debug_gini` a partir de `main.c`) que carga los flotantes temporalmente extraídos a un `gini_data.txt` para iterar de forma pura las llamadas a ASM. Esto prevé el enorme *overhead* o complejidad que implicaría depurar el intérprete de Python completo con GDB.
+plt.figure(figsize=(30, 5))
+plt.plot(anios_enteros, resultados_enteros, marker='o', linewidth=2)
 
+plt.title('Índice GINI en Argentina', fontsize=14, fontweight='bold')
+plt.xlabel('Año', fontsize=12)
+plt.ylabel('GINI', fontsize=12)
+
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.xticks(anios_enteros)
+plt.tight_layout()
+
+plt.show()
+```
+
+#### Capa Intermedia: Procesamiento en C (`float_to_int.c`)
+En esta primera iteración, el lenguaje C asume completamente la responsabilidad del procesamiento de los datos.
+- Implementa la función `float_to_int`, la cual recibe un valor de tipo `float`.
+- Realiza la conversión de tipo mediante casting explícito a entero.
+- Aplica la operación requerida por la consigna, sumando una unidad al valor convertido `((int)(indice_gini + 1))`.
+- Retorna el resultado directamente al cliente Python.
+```c
+#include "stdio.h"
+#include "math.h"
+
+// Funcion para castear un numero flotante a entero
+int float_to_int(float indice_gini){
+    return (int)(indice_gini + 1);
+}
+```
 ### 2.2. Segunda Iteracion
 
 #### Capa Superior: Cliente Python (`api_Rest.py`)
@@ -70,6 +149,18 @@ No sufre modificaciones. Continua siendo el punto de entrada de la aplicación e
 En esta versión definitiva, C funciona puramente como un "wrapper" sin apenas sobrecarga hacia Ensamblador:
 - En la librería compartida, procesa los llamados de Python derivándolos a `float_to_int_asm` recibiendo el tipo `float`.
 - Para propósitos de *debugging* del stack, se generó un binario auto-contenido (`debug_gini` a partir de `main.c`) que carga los flotantes temporalmente extraídos a un `gini_data.txt` para iterar de forma pura las llamadas a ASM. Esto prevé el enorme *overhead* o complejidad que implicaría depurar el intérprete de Python completo con GDB.
+```C
+#include "stdio.h"
+
+/*Agregar el extern del ensamblador*/
+extern int float_to_int_asm(float);
+
+// Funcion para castear un numero flotante a entero
+int float_to_int(float indice_gini){
+    // Delegamos la lógica matemática a nuestra función nativa en NASM
+    return float_to_int_asm(indice_gini);
+}
+```
 
 #### Capa Inferior: Ensamblador x86-64 (`float_to_int_asm.asm`)
 Motor lógico principal del trabajo práctico. Se adhiere estrictamente a la convención **ABI de System V AMD64**:
@@ -78,6 +169,37 @@ Motor lógico principal del trabajo práctico. Se adhiere estrictamente a la con
 - Utiliza la instrucción de conversión directa con truncamiento en procesadores paralelos (`cvttss2si`) hacia el registro `eax` (tamaño de 32-bits / dword).
 - Modifica el resultado entero directo truncado sumando la unidad requerida por consigna (`inc eax`).
 - Retorna el valor alojado en `rax`.
+``` ASM
+global float_to_int_asm
+
+section .text
+
+; Firma: int float_to_int_asm(float x)
+; En la ABI System V (x86-64 en Linux), el primer argumento (float) llega en el registro xmm0.
+; El retorno (int) debe dejarse en eax.
+
+float_to_int_asm:
+    ; 1. Prólogo del Stack Frame
+    push rbp                ; Guardamos el base pointer anterior
+    mov rbp, rsp            ; Establecemos nuestro propio base pointer
+    
+    ; Reservamos espacio en la pila para variables locales (16 bytes para alinear a 16)
+    sub rsp, 16             
+
+    ; 2. Cumplir el requerimiento: Pasar el valor del registro (xmm0) a la memoria de pila
+    movss dword [rbp-4], xmm0
+
+    ; 3. Leer de la pila, castear a entero (truncamiento) y guardar en eax
+    cvttss2si eax, dword [rbp-4] 
+
+    ; 4. Sumar 1 al resultado para el redondeo/requerimiento
+    inc eax                 ; eax = eax + 1
+
+    ; 5. Epílogo del Stack Frame
+    mov rsp, rbp            ; Restauramos el stack pointer
+    pop rbp                 ; Restauramos el base pointer
+    ret                     ; Retornamos a la función invocadora (en C)
+```
 
 ---
 
@@ -103,6 +225,7 @@ A continuación, se ilustran tanto la arquitectura en bloque como el flujo de in
 ---
 
 ## 4. Resultados
+A continuación, se muestran los resultados que se devuelven tras ejecutar el script:
 
 ### 4.1. Valores mostrados
 ![Mermaid: Diagrama de Secuencias](TP2/img/Resultados.png)
