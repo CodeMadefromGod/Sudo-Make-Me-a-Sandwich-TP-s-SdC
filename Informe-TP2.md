@@ -209,7 +209,7 @@ A continuación, se ilustran tanto la arquitectura en bloque como el flujo de in
 ### 3.1. Primera Iteracion
 
 #### Diagrama de Flujo
-![Mermaid: Diagrama de Flujo](TP2/img/flowchart.png)
+![Mermaid: Diagrama de Flujo](TP2/img/Diagrama_Flujo_Iteracion_1.png)
 
 #### Diagrama de Secuencias
 ![Mermaid: Diagrama de Secuencias](TP2/img/Diagrama_Secuencias_Iteracion_1.png)
@@ -217,7 +217,7 @@ A continuación, se ilustran tanto la arquitectura en bloque como el flujo de in
 ### 3.2. Segunda Iteracion
 
 #### Diagrama de Flujo
-![Mermaid: Diagrama de Flujo](TP2/img/flowchart.png)
+![Mermaid: Diagrama de Flujo](TP2/img/Diagrama_Flujo_Iteracion_2.png)
 
 #### Diagrama de Secuencias
 ![Mermaid: Diagrama de Secuencias](TP2/img/Diagrama_Secuencias_Iteracion_2.png)
