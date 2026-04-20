@@ -29,6 +29,8 @@ A partir de esta idea, en el presente trabajo practico se desea integrar herrami
 - **Capa Intermedia:** C
 - **Capa Inferior:**  ASM
 
+--
+
 ## 2. Objetivo
 El objetivo principal del trabajo practico es obtener el índice GINI de la República Argentina desde la API REST del Banco Mundial, y realizar una operación de truncamiento e incremento numérico de dicho índice.
 
@@ -41,24 +43,35 @@ Finalmente, el flujo de desarrollo, compilación y ejecución fue fuertemente op
 ## 2. Arquitectura e Implementación
 
 ### 2.1. Primera Iteracion
-
-
-### 2.2. Segunda Iteracion
-
 #### Capa Superior: Cliente Python (`api_Rest.py`)
 Constituye el punto de entrada de la aplicación en el espacio de usuario.
 1. Ejecuta una petición HTTP GET síncrona (bloqueante) a la API del Banco Mundial para extraer el JSON con las respuestas.
 2. Filtra y limpia los datos nulos para rescatar únicamente los índices de Argentina.
 3. Invoca la librería dinámica compilada (`libgini.so`) mediante `ctypes`, pasando el valor decimal como `float`.
 4. Recibe e imprime el resultado final calculado por los niveles subyacentes.
-5. Grafica una curva 
+5. Grafica una curva con los datos extraidos
 
-### Capa Intermedia: Interfaz C (`float_to_int.c` y `main.c`)
+#### Capa Intermedia: Interfaz C (`float_to_int.c` y `main.c`)
+En este punto, C funciona puramente como un "wrapper" sin apenas sobrecarga hacia Ensamblador:
+- En la librería compartida, procesa los llamados de Python derivándolos a `float_to_int_asm` recibiendo el tipo `float`.
+- Para propósitos de *debugging* del stack, se generó un binario auto-contenido (`debug_gini` a partir de `main.c`) que carga los flotantes temporalmente extraídos a un `gini_data.txt` para iterar de forma pura las llamadas a ASM. Esto prevé el enorme *overhead* o complejidad que implicaría depurar el intérprete de Python completo con GDB.
+
+### 2.2. Segunda Iteracion
+
+#### Capa Superior: Cliente Python (`api_Rest.py`)
+No sufre modificaciones. Continua siendo el punto de entrada de la aplicación en el espacio de usuario y se mantienen sus funciones.
+1. Ejecuta una petición HTTP GET síncrona (bloqueante) a la API del Banco Mundial para extraer el JSON con las respuestas.
+2. Filtra y limpia los datos nulos para rescatar únicamente los índices de Argentina.
+3. Invoca la librería dinámica compilada (`libgini.so`) mediante `ctypes`, pasando el valor decimal como `float`.
+4. Recibe e imprime el resultado final calculado por los niveles subyacentes.
+5. Grafica una curva con los datos extraidos
+
+#### Capa Intermedia: Interfaz C (`float_to_int.c` y `main.c`)
 En esta versión definitiva, C funciona puramente como un "wrapper" sin apenas sobrecarga hacia Ensamblador:
 - En la librería compartida, procesa los llamados de Python derivándolos a `float_to_int_asm` recibiendo el tipo `float`.
 - Para propósitos de *debugging* del stack, se generó un binario auto-contenido (`debug_gini` a partir de `main.c`) que carga los flotantes temporalmente extraídos a un `gini_data.txt` para iterar de forma pura las llamadas a ASM. Esto prevé el enorme *overhead* o complejidad que implicaría depurar el intérprete de Python completo con GDB.
 
-### Capa Inferior: Ensamblador x86-64 (`float_to_int_asm.asm`)
+#### Capa Inferior: Ensamblador x86-64 (`float_to_int_asm.asm`)
 Motor lógico principal del trabajo práctico. Se adhiere estrictamente a la convención **ABI de System V AMD64**:
 - Recibe el argumento de punto flotante a través de los registros vectoriales SSE (registro `xmm0` en particular).
 - Lo transfiere localmente a la memoria de la pila mediante el stack frame para lectura/escritura predecible.
@@ -77,7 +90,7 @@ A continuación, se ilustran tanto la arquitectura en bloque como el flujo de in
 ![Mermaid: Diagrama de Flujo](TP2/img/flowchart.png)
 
 #### Diagrama de Secuencias
-![Mermaid: Diagrama de Secuencias](TP2/img/secuence_diagram.png)
+![Mermaid: Diagrama de Secuencias](TP2/img/Diagrama_Secuencias_Iteracion_1.png)
 
 ### 3.2. Segunda Iteracion
 
@@ -85,10 +98,21 @@ A continuación, se ilustran tanto la arquitectura en bloque como el flujo de in
 ![Mermaid: Diagrama de Flujo](TP2/img/flowchart.png)
 
 #### Diagrama de Secuencias
-![Mermaid: Diagrama de Secuencias](TP2/img/secuence_diagram.png)
+![Mermaid: Diagrama de Secuencias](TP2/img/Diagrama_Secuencias_Iteracion_2.png)
+
 ---
 
-## 4. Análisis de Memoria y Pila (Stack) con GDB
+## 4. Resultados
+
+### 4.1. Valores mostrados
+![Mermaid: Diagrama de Secuencias](TP2/img/Diagrama_Secuencias_Iteracion_2.png)
+
+### 4.2. Curva del Indice GINI
+![Mermaid: Diagrama de Secuencias](TP2/img/Diagrama_Secuencias_Iteracion_2.png)
+
+---
+
+## 5. Análisis de Memoria y Pila (Stack) con GDB
 
 Como parte vital de la Iteración 2, se hizo uso intensivo del ejecutable puente en C (`debug_gini`) para observar visualmente la asignación de variables de entorno, carga/desplazamiento de registros y particularmente el diseño en memoria de la pila (*Stack*), deteniendo paso a paso los llamados al submódulo en ensamblador. 
 
@@ -114,7 +138,7 @@ Con la pila saneada en el ASM (*epílogo*), el valor saliente del acumulador `ra
 
 ---
 
-## 5. Instrucciones de Construcción y Ejecución Mejoradas (Iteración 2)
+## 6. Instrucciones de Construcción y Ejecución Mejoradas (Iteración 2)
 
 El proyecto actual posee todo su flujo de despliegue consolidado para que otros ambientes puedan consumirlo fluidamente:
 
