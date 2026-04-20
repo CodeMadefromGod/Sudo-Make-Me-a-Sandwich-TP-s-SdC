@@ -285,3 +285,21 @@ Para modificar capas medias, depurar GDB u obligar ensambles de archivos parcial
 make          # Construye librerías dinámicas y ejecutables de forma integral
 make clean    # Limpia artefactos intermedios y binarios producidos
 ```
+---
+## 6. Conclusion
+El desarrollo de este trabajo permitio comprender de forma practica como es la interaccion entre distintos niveles de abstraccion en un sistema de software. En el mismo, se trabajo integrando los lenguajes de Python, C y ASM.
+
+La solucion de la Primera Iteracion, que implicaba utilizar los lenguajes Python y C,resulto ser una forma bastante funcional para abordar el problema propuesto. Por otro lado, el desarrollo seguido en la Segunda Iteracion, en la que fue incorporado el codigo en lenguaje ASM, permitio profundizar en el funcionamiento interno del sistema, particularmente, en lo relacionado a la Convencion de Llamadas.
+
+En esta Segunda Iteracion, se trabajo con una interesante herramienta de depuracion (GDB), la cual fue de utilidad para observar detalladamente el comportamiento del programa a bajo nivel, se pudo observar la organizacion del stack y los registros, asi tambien, la dinamica que seguian conforme se iba ejecutando el programa.
+
+Para terminar, a traves de este trabajo se logro adquirir una vision mas integral sobre la relacion entre el software y el hardware.
+
+---
+## 7. Bibliografia
+- PC Assembly Language.
+P. A. Carter, PC Assembly Language. Noviembre 2006.
+- NASM - The Netwide Assembler.
+The NASM Development Team, NASM - The Netwide Assembler Manual.
+- World Bank Group.
+The World Bank Group, World Bank Open Data API Documentation.
