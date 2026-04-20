@@ -7,7 +7,7 @@ years = []
 last_gini_index = None
 file = None
 
-response = requests.get('https://api.worldbank.org/v2/en/country/all/indicator/SI.POV.GINI?format=json&date=2016:2026&per_page=32500&page=1&country=%22Argentina%22')
+response = requests.get('https://api.worldbank.org/v2/en/country/all/indicator/SI.POV.GINI?format=json&date=2000:2026&per_page=32500&page=1&country=%22Argentina%22')
 if response:
     print("OK")
 else:
@@ -63,7 +63,7 @@ print(resultados_enteros)
 # Graficamos los datos
 anios_enteros = [int(a) for a in years]
 
-plt.figure(figsize=(10, 5))
+plt.figure(figsize=(30, 5))
 plt.plot(anios_enteros, resultados_enteros, marker='o', linewidth=2)
 
 plt.title('Índice GINI en Argentina', fontsize=14, fontweight='bold')
