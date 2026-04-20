@@ -1,2 +1,16 @@
 # VS Code
 .vscode/
+
+# Ignorar archivos de entorno virtual de Python
+.venv/
+
+# Ignorar binarios y ejecutables generados por C/NASM
+TP2/*.o
+TP2/*.so
+TP2/debug_gini
+
+# Ignorar archivos de datos temporales generados por la API
+TP2/gini_data.txt
+
+# Ignorar .gdb_history archivo de historial de comandos de gdb
+TP2/.gdb_history
