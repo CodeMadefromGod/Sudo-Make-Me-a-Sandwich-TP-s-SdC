@@ -1,7 +1,9 @@
 import requests
 import ctypes
+import matplotlib.pyplot as plt
 
 results = []
+years = []
 last_gini_index = None
 file = None
 
@@ -21,14 +23,18 @@ for i in not_metadata:
         if i["value"] is not None: 
             print("Gini index from Argentina in", i["date"], "is:", i["value"])
             results.append(i["value"])
+            years.append(i["date"])
 
 print()
 print(results)
+print()
+print(years)
 
 if len(results) == 0:  
     print("No Gini index data available for Argentina.")
     exit()
 
+print()
 print("Guardando datos en gini_data.txt para GDB...")
 with open("gini_data.txt", "w") as f:
     for val in results:
@@ -53,3 +59,19 @@ print(results)
 print()
 print("Array resultante procesado por ASM (+1 redondeo):")
 print(resultados_enteros)
+
+# Graficamos los datos
+anios_enteros = [int(a) for a in years]
+
+plt.figure(figsize=(10, 5))
+plt.plot(anios_enteros, resultados_enteros, marker='o', linewidth=2)
+
+plt.title('Índice GINI en Argentina', fontsize=14, fontweight='bold')
+plt.xlabel('Año', fontsize=12)
+plt.ylabel('GINI', fontsize=12)
+
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.xticks(anios_enteros)
+plt.tight_layout()
+
+plt.show()
