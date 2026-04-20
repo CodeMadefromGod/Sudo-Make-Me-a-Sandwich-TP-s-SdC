@@ -29,7 +29,7 @@ A partir de esta idea, en el presente trabajo practico se desea integrar herrami
 - **Capa Intermedia:** C
 - **Capa Inferior:**  ASM
 
---
+---
 
 ## 2. Objetivo
 El objetivo principal del trabajo practico es obtener el índice GINI de la República Argentina desde la API REST del Banco Mundial, y realizar una operación de truncamiento e incremento numérico de dicho índice.
@@ -105,10 +105,10 @@ A continuación, se ilustran tanto la arquitectura en bloque como el flujo de in
 ## 4. Resultados
 
 ### 4.1. Valores mostrados
-![Mermaid: Diagrama de Secuencias](TP2/img/Diagrama_Secuencias_Iteracion_2.png)
+![Mermaid: Diagrama de Secuencias](TP2/img/Resultados.png)
 
 ### 4.2. Curva del Indice GINI
-![Mermaid: Diagrama de Secuencias](TP2/img/Diagrama_Secuencias_Iteracion_2.png)
+![Mermaid: Diagrama de Secuencias](TP2/img/GINI_ARG.png)
 
 ---
 
