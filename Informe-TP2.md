@@ -237,7 +237,7 @@ A continuación, se muestran los resultados que se devuelven tras ejecutar el sc
 
 ## 5. Análisis de Memoria y Pila (Stack) con GDB
 
-Como parte vital de la Iteración 2, se hizo uso intensivo del ejecutable puente en C (`debug_gini`) para observar visualmente la asignación de variables de entorno, carga/desplazamiento de registros y particularmente el diseño en memoria de la pila (*Stack*), deteniendo paso a paso los llamados al submódulo en ensamblador. 
+Como parte vital de la Segunda Iteracion, se hizo uso intensivo del ejecutable puente en C (`debug_gini`) para observar visualmente la asignación de variables de entorno, carga/desplazamiento de registros y particularmente el diseño en memoria de la pila (*Stack*), deteniendo paso a paso los llamados al submódulo en ensamblador. 
 
 Se analizaron 3 estados críticos del marco de la pila durante la iteración 1 del loop, correspondientes al truncado e incremento desde nuestro primer registro GINI de **`42.4`** a **`43`**.
 
@@ -261,7 +261,7 @@ Con la pila saneada en el ASM (*epílogo*), el valor saliente del acumulador `ra
 
 ---
 
-## 6. Instrucciones de Construcción y Ejecución Mejoradas (Iteración 2)
+## 6. Instrucciones de Construcción y Ejecución Mejoradas (Segunda Iteracion)
 
 El proyecto actual posee todo su flujo de despliegue consolidado para que otros ambientes puedan consumirlo fluidamente:
 
