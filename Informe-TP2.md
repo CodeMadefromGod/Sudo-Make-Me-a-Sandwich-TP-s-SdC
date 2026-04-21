@@ -286,7 +286,7 @@ make          # Construye librerías dinámicas y ejecutables de forma integral
 make clean    # Limpia artefactos intermedios y binarios producidos
 ```
 ---
-## 6. Conclusion
+## 6. Conclusión
 El desarrollo de este trabajo permitió comprender de forma práctica cómo se produce la interaccion entre distintos niveles de abstracción en un sistema de software. En el mismo, se integraron los lenguajes de *Python, C y ASM*.
 
 La solución correspondiente a la *Primera Iteración*, basada en el uso de los lenguajes *Python y C*, resultó ser una alternativa funcional para abordar el problema propuesto. Por otro lado, el desarrollo seguido en la *Segunda Iteracioón*, que implicaba incorporar código en lenguaje *ASM*, permitió profundizar en el funcionamiento interno del sistema, particularmente en lo relacionado a la *Convención de Llamadas* y manejo de registros.
@@ -296,7 +296,7 @@ Asimismo, en esta *Segunda Iteración*, se empleó una interesante herramienta d
 Para terminar, a través de este trabajo se logró adquirir una visión más integral sobre la relación entre el software y el hardware.
 
 ---
-## 7. Bibliografia
+## 7. Bibliografía
 - PC Assembly Language.
 P. A. Carter, PC Assembly Language. Noviembre 2006.
 - NASM - The Netwide Assembler.
