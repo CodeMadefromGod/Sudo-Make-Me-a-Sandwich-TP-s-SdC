@@ -1,7 +1,6 @@
 import requests
 import ctypes
 import matplotlib.pyplot as plt
-import time
 
 results = []
 years = []
@@ -48,15 +47,11 @@ lib = ctypes.CDLL("./libgini.so")
 lib.float_to_int.argtypes = [ctypes.c_float]
 lib.float_to_int.restype = ctypes.c_int
 
-start = time.time()
-
 # Procesamos TODO el array dinámicamente llamando a la función en ASM
 resultados_enteros = []
 for val in results:
     entero_redondeado = lib.float_to_int(float(val))
     resultados_enteros.append(entero_redondeado)
-
-end = time.time()
 
 print()
 print("Array original de índices Gini obtenidos (float):")
@@ -80,5 +75,3 @@ plt.xticks(anios_enteros)
 plt.tight_layout()
 
 plt.show()
-
-print(end-start)
