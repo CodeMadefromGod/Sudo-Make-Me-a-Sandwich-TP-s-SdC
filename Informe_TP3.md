@@ -1,6 +1,6 @@
-Trabajo Practico N°3: Modo Protegido
+# Trabajo Práctico N°3: Modo Protegido
 
-### Asignatura: Sistemas de Computacion
+### Asignatura: Sistemas de Computación
 
 **Facultad de Ciencias Exactas, Físicas y Naturales (UNC)**
 
