@@ -1,6 +1,6 @@
-# Trabajo Practico N°3: Modo Protegido
+# Trabajo Práctico N°3: Modo Protegido
 
-### Asignatura: Sistemas de Computacion
+### Asignatura: Sistemas de Computación
 
 **Facultad de Ciencias Exactas, Físicas y Naturales (UNC)**
 
@@ -15,18 +15,18 @@
 
 | Nombre y Apellido | Correo Electrónico |
 | :--- | :--- |
-| **Sergio Andres Fernandez Segovia** | _sergio.fernandez.segovia@mi.unc.edu.ar_ |
+| **Sergio Andrés Fernández Segovia** | _sergio.fernandez.segovia@mi.unc.edu.ar_ |
 | **Enzo Leonel Laura Surco** | _enzo.laura.surco@mi.unc.edu.ar_ |
 | **Saqib Daniel Mohammad Cabrejos** | _saqib.mohammad@mi.unc.edu.ar_ |
 
 
 
 
-## Desafio Final: Modo Protegido 
+## 4.- Desafio Final: Modo Protegido 
 
-Basandonos en el codigo proporcionado "common.h", implementamos un codigo en ensamblador "protected_mode.asm" que nos permite entrar en modo protegido y imprimir "Hello World".
+Basándonos en el código proporcionado "common.h", implementamos un código en ensamblador "protected_mode.asm" que nos permite entrar en modo protegido e imprimir "Hello World".
 
-El codigo que se realizo es el siguiente:
+El código que se realizó es el siguiente:
 
 ```assembly
 ; protected_mode.asm
@@ -152,7 +152,7 @@ El resultado que se obtuvo fue:
 
 ### ¿Cómo sería un programa que tenga dos descriptores de memoria diferentes, uno para cada segmento (código y datos) en espacios de memoria diferenciados?
 
-Para poder responder esta pregunta, hay describir que el CPU usara siempre una misma GDT. Entonces habiendo entendido eso lo que hay que hacer es diferenciar los segmentos base tanto para la parte de codigo como para la parte de datos. Por ejemplo:
+Para poder responder esta pregunta, hay describir que el CPU usará siempre una misma GDT. Entonces habiendo entendido eso lo que hay que hacer es diferenciar los segmentos base tanto para la parte de codigo como para la parte de datos. Por ejemplo:
 
 ```assembly
 ;===========================
@@ -209,7 +209,7 @@ gdt_data:
     db 11001111b
     db 0x00 ;<---------------- base high
 ```
-Tanto el segmento de datos como el codigo de datos tienen la misma base, apuntando a la misma memoria, la respuesta a la pregunta seria lo siguiente:
+Tanto el segmento de datos como el código de datos tienen la misma base, apuntando a la misma memoria, la respuesta a la pregunta seria lo siguiente:
 
 ```assembly
 gdt_code:
@@ -229,12 +229,12 @@ gdt_data:
     db 0x00 ;<---------------- base high
 ```
 
-Ahora en este caso el segmento de codigo apuntara a otra region y el segmento de datos a otra teniendo distinta base. Esto es segmentacion real. El CPU usa base + offset
+Ahora en este caso el segmento de codigo apuntará a otra región y el segmento de datos a otra teniendo distinta base. Esto es segmentación real. El CPU usa base + offset
 
 
-### Cambiar los bits de acceso del segmento de datos para que sea de solo lectura, intentar escribir, ¿Que sucede? ¿Que debería suceder a continuación? (revisar el teórico) Verificarlo con gdb.
+### Cambiar los bits de acceso del segmento de datos para que sea de sólo lectura, intentar escribir ¿Qué sucede? ¿Qué debería suceder a continuación? (revisar el teórico) Verificarlo con gdb.
 
-Si la idea es cambiar los permisos del segmento de datos para que sea de solo lectura, hay que modificar el bit de lectura y escritura del descriptor de datos. En este caso, el bit de lectura y escritura es el bit 1. Entonces, si queremos que sea de solo lectura, hay que poner el bit de lectura y escritura en 0.
+Si la idea es cambiar los permisos del segmento de datos para que sea de solo lectura, hay que modificar el bit de lectura y escritura del descriptor de datos. En este caso, el bit de lectura y escritura es el bit 1. Entonces, si queremos que sea de sólo lectura, hay que poner el bit de lectura y escritura en 0.
 
 
 ```assembly
@@ -254,12 +254,12 @@ gdt_data:
     db 11001111b
     db 0x00 
 ```
-Haciendo esto cuando el CPU ejecute la instruccion:
+Haciendo esto cuando el CPU ejecute la instrucción:
 
 ```assembly
 mov [edi], ax
 ```
-Como el segmento read-only ocasionara un General Protection Fault. Que puede ser observado mediante GDB:
+Como el segmento read-only ocasionará un General Protection Fault. Que puede ser observado mediante GDB:
 
 Primero ejecutamos qemu de la siguiente manera para que no inicie el programa hasta mencionarlo con gdb:
 
@@ -317,7 +317,7 @@ Esto no quiere decir que el programa no haya sido exitoso en mostrar el mensaje 
 ```bash
 qemu-system-i386 -drive file=protected_mode.bin,format=raw -no-reboot -d int
 ```
-El programa no termina normalmente sino que lo cierra abruptamente y en el log se puede visualizar el error que se genero al intentar escribir en memoria no permitida:
+El programa no termina normalmente sino que lo cierra abruptamente y en el log se puede visualizar el error que se generó al intentar escribir en memoria no permitida:
 
 ```
 Servicing hardware INT=0x08
@@ -332,7 +332,7 @@ check_exception old: 0xffffffff new 0xd
 check_exception old: 0x8 new 0xd
 ```
 
-### En modo protegido, ¿Con qué valor se cargan los registros de segmento? ¿Porque?
+### En modo protegido. ¿Con qué valor se cargan los registros de segmento? ¿Por qué?
 
 
 En modo protegido, los registros de segmento no contienen direcciones físicas como en modo real, sino selectores de segmento. Estos selectores son índices que apuntan a entradas en la Global Descriptor Table (GDT) o Local Descriptor Table (LDT). Cada entrada describe un segmento, incluyendo su dirección base, tamaño y permisos de acceso. Esto permite al procesador implementar mecanismos de protección de memoria evitando que los programas rompan memoria, verificando los accesos antes de ejecutarlos y validar permisos del segmento.
@@ -348,4 +348,129 @@ En modo protegido, los registros de segmento no contienen direcciones físicas c
 ```
 
 
+## 5.- Bonus Track: Introducción a UEDI
 
+### Preparación del Entorno
+
+- `qemu-system-x86`
+- `ovmf`
+- `gnu-efi`
+- `binutils-mingw-w64`
+- `gcc-mingw-w64`
+- `mtools`
+- `xorriso`
+
+```bash
+sudo apt update
+sudo apt install qemu-system-x86 qemu-utils ovmf gnu-efi mtools xorriso gcc-mingw-w64
+binutils-mingw-w64
+```
+
+### Verificación de firmware de UEFI en QEMU
+
+```bash
+qemu-system-x86_64 \
+-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
+-drive if=pflash,format=raw,file=/usr/share/OVMF/OVMF_VARS_4M.fd
+```
+
+### Creación del programa UEFI
+
+- `#include <efi.h>` y `#include <efilib.h>`
+- `efi_main()`
+- `InitializeLib(ImageHandle, SystemTable)`
+- `Print(u"Hello World!\r\n")` y `Print(u"From Group: Sudo Make Me a Sandwich!\r\n")`
+- `while (1)`
+
+``` c
+#include <efi.h>
+#include <efilib.h>
+
+EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
+{
+    InitializeLib(ImageHandle, SystemTable);
+
+    Print(u"Hello World!\r\n");
+
+    Print(u"From Group: Sudo Make Me a Sandwich!\r\n");
+
+    while (1);
+
+    return EFI_SUCCESS;
+}
+```
+
+### Compilación y Link
+
+#### Compilación
+
+``` bash
+gcc \
+-I/usr/include/efi \
+-I/usr/include/efi/x86_64 \
+-fpic \
+-ffreestanding \
+-fno-stack-protector \
+-mno-red-zone \
+-c hello.c -o hello.o
+```
+
+#### Enlace
+
+``` bash
+gcc \-nostdlib \
+-Wl,-dll \
+-Wl,-shared \
+-Wl,-Bsymbolic \
+-Wl,-T,/usr/lib/elf_x86_64_efi.lds \
+-Wl,--entry,_start \
+/usr/lib/crt0-efi-x86_64.o \
+hello.o \
+-L/usr/lib \
+-lefi -lgnuefi \
+-o
+```
+
+### Conversión al formato ejecutable UEFI
+
+``` bash
+objcopy \
+-j .text \
+-j .sdata \
+-j .data \
+-j .dynamic \
+-j .dynsym \
+-j .rel \
+-j .rela \
+-j .reloc \
+--target efi-app-x86_64 \
+hello.so BOOTX64.EFI
+```
+
+### Creación imagen FAT
+
+``` bash
+dd if=/dev/zero of=fat.img bs=1M count=64
+mformat -i fat.img ::
+mmd -i fat.img ::/EFI
+mmd -i fat.img ::/EFI/BOOT
+mcopy -i fat.img BOOTX64.EFI ::/EFI/BOOT/
+```
+
+### Ejecución en QEMU
+
+``` bash
+sudo qemu-system-x86_64 \
+-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
+-drive if=pflash,format=raw,file=fresh_vars.fd \
+-drive file=fat.img,format=raw
+```
+
+### Resumen
+1) escribir hello.c
+2) gcc -> hello.o
+3) link -> hello.so
+4) objcopy -> BOOTX64.EFI
+5) crear fat.img
+6) copiar BOOTX64.EFI dentro de fat.img
+7) arrancar QEMU con fat.img
