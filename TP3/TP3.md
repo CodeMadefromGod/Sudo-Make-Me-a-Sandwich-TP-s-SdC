@@ -351,7 +351,7 @@ En modo protegido, los registros de segmento no contienen direcciones físicas c
 ## 5.- Bonus Track: Introducción a UEFI
 
 ### Objetivo
-Como punto adicional en este trabajo práctico, se buscó comprender el funcionamiento básico del entorno UEFI y lograr ejecutar un mínimo código a través de una máquina virtual antesala del TP3a. Para ello, se siguieron las instrucciones del siguiente enlace `https://wiki.osdev.org/UEFI_App_Bare_Bones`. Mas detalladamente esta seccion:
+Como punto adicional en este trabajo práctico y con la intencion de investigar acerca de UEFI antes del TP3-a, se buscó comprender el funcionamiento básico del entorno UEFI y lograr ejecutar un mínimo código a través de una máquina virtual. Para ello, se siguieron las instrucciones del siguiente enlace `https://wiki.osdev.org/UEFI_App_Bare_Bones`. Mas detalladamente esta seccion:
 
 ![](https://github.com/Sachan-2512/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/desafio_final/image-2.png)
 
