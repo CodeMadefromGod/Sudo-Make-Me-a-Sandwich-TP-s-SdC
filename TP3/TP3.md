@@ -348,25 +348,36 @@ En modo protegido, los registros de segmento no contienen direcciones físicas c
 ```
 
 
-## 5.- Bonus Track: Introducción a UEDI
+## 5.- Bonus Track: Introducción a UEFI
 
-### Preparación del Entorno
+### Objetivo
+Como punto adicional en este trabajo práctico, se buscó comprender el funcionamiento básico del entorno UEFI y lograr ejecutar un mínimo código a través de una máquina virtual. Para ello, se siguieron las instrucciones del siguiente enlace `https://wiki.osdev.org/UEFI_App_Bare_Bones`. El procedimiento detallado en este tutorial consistía en la preparación del entorno, compilación del programa, creación de una imagen FAT y, finalmente, la ejecución en QEMU con firmware OVMF.
 
-- `qemu-system-x86`
-- `ovmf`
-- `gnu-efi`
-- `binutils-mingw-w64`
-- `gcc-mingw-w64`
-- `mtools`
-- `xorriso`
+Como una breve introducción, UEFI es el firmware moderno que reemplaza progresivamente al BIOS tradicional. Entre sus funciones se encuentra inicializar el hardware y permitir la carga de aplicaciones antes de que arranque un sistema operativo. En esta parte del trabajo se buscó comprobar, de manera práctica, cómo una aplicación UEFI puede ser compilada, empaquetada y ejecutada.
+
+### 5.1. Preparación del Entorno
+Antes de comenzar, fue necesario instalar todas las herramientas requeridas para desesarrollar y probar aplicaciones UEFI en Linux. Se tratan de paquetes que se emplean para la emulación, firmware, compilación y manipulación de sistemas de archivos FAT.
+
+Los paquetes instalados fueron los siguientes:
+
+- `qemu-system-x86` y `qemu-utils`: Permiten emular la arquitectura x86.
+- `ovmf`: Proporciona firmware UEFI para QEMU.
+- `gnu-efi`: Incluye cabeceras y bibliotecas específicas para aplicaciones UEFI.
+- `binutils-mingw-w64` y `gcc-mingw-w64`: Permiten compilzar y enlazar el código en un formato compatible con UEFI.
+- `mtools`: Permite crear y modificar imágenes FAT sin tener que montarlas manualmente.
+- `xorriso`: Herramienta auxiliar para manipulación de imágenes.
+
+Para la instalación se emplearon las siguientes líneas de comandos:
 
 ```bash
 sudo apt update
 sudo apt install qemu-system-x86 qemu-utils ovmf gnu-efi mtools xorriso gcc-mingw-w64
 binutils-mingw-w64
 ```
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Entorno.png)   
 
-### Verificación de firmware de UEFI en QEMU
+### 5.2. Verificación del firmware de UEFI en QEMU
+Una vez instalado el entorno, se debe verificar que QEMU pueda arrancar con firmware UEFI. A continuación, se muestra el comando utilizado. En dicha línea se usa `pflash` y la razón es que OVMF necesita cargar el firmware como memoria flash, de forma similar a como lo haría una placa real.
 
 ```bash
 qemu-system-x86_64 \
@@ -374,13 +385,12 @@ qemu-system-x86_64 \
 -drive if=pflash,format=raw,file=/usr/share/OVMF/OVMF_VARS_4M.fd
 ```
 
-### Creación del programa UEFI
+Al ejecutar este comando apareció la pantalla de TianoCore, confirmando que el entorno UEFI funcionaba correctamente.
 
-- `#include <efi.h>` y `#include <efilib.h>`
-- `efi_main()`
-- `InitializeLib(ImageHandle, SystemTable)`
-- `Print(u"Hello World!\r\n")` y `Print(u"From Group: Sudo Make Me a Sandwich!\r\n")`
-- `while (1)`
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Verificacion.png)  
+
+### 5.3. Creación del programa UEFI
+En este paso, se crea el código de prueba, el cual se guarda bajo el nombre de `hello.c`. Como se comentó al inicio, se trata de un código simple que, en este caso, muestra un mensaje por pantalla. El código trabajado fue el siguiente:
 
 ``` c
 #include <efi.h>
@@ -399,10 +409,17 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     return EFI_SUCCESS;
 }
 ```
+En el código anterior se identifica lo siguiente:
 
-### Compilación y Link
+- `#include <efi.h>` y `#include <efilib.h>`: Encargados de incluir las definiciones necesarias para programar en UEFI.
+- `efi_main()`: Se trata del punto de entrada de un código o aplicación UEFI. Podría ser equivalente asimilarlo a un `main()` de un programa convencional.
+- `InitializeLib(ImageHandle, SystemTable)`: Inicializa la biblioteca GNU-EFI y permite usar funciones, en este caso en particular, `Print`.
+- `Print(u"Hello World!\r\n")` y `Print(u"From Group: Sudo Make Me a Sandwich!\r\n")`: Se llama a la función para imprimir los mensajes en la consola del firmware.
+- `while (1)`: Busca mantener la ejecución del programa para evitar que el mensaje desaparezca.
+- `return EFI_SUCCESS`: Indica que la ejecución terminó correctamente; sin embargo, en este caso nunca llegaría a eso debido al `while(1)`.
 
-#### Compilación
+### 5.4. Compilación del código
+Esta operación implica transformar `hello.c` en un archivo objeto `hello.o`. Seguidamente, se comparte la línea de comando para tal efecto.
 
 ``` bash
 gcc \
@@ -414,8 +431,20 @@ gcc \
 -mno-red-zone \
 -c hello.c -o hello.o
 ```
+Del bloque anterior, se observa:
 
-#### Enlace
+- `-ffreestanding`: Indica que el código no depende de un SO convencional.
+- `-fno-stack-protecto`: Desactiva protecciones pensadas para programas de usuario normales, las cuales, en este caso no son apropiadas.
+- `-mno-red-zone`: Deshabilita la red zone.
+- `-c`: Complia sin enlazar, se genera el archivo objeto.
+
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Compilacion.png)  
+
+
+### 5.5. Enlazado con GNE-EFI
+Debido a que el archivo `hello.o` no es suficiente para generar una aplicación UEFI, resulta necesario enlazarlo con las bibliotecas de GNU-EFI y con el archivo de arranque específico para este retorno, obteniendo `hello.so`.
+
+Se trabajó con el siguiente comando:
 
 ``` bash
 gcc \-nostdlib \
@@ -428,10 +457,20 @@ gcc \-nostdlib \
 hello.o \
 -L/usr/lib \
 -lefi -lgnuefi \
--o
+-o hello.so
 ```
+- `-nostdlib`: Evita enlazar la biblioteca estándar de C.
+- `crt0-efi-x86_64.o`: Archivo de arranque que prepara la ejecución en UEFI.
+- `-lefi`y `lgnuefi`: Enlazan las bibliotecas necesarias para utilizar servicios del firmware.
+- `-T,/usr/lib/elf_x86_64_efi.lds`: Usa el script de enlace específico para aplicaciones EFI.
+- `-o hello.so`: Crea el binario enlazado.
 
-### Conversión al formato ejecutable UEFI
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Enlace.png)  
+
+Este paso es bastante importante ya que UEFI no ejecuta directamente un objeto compilado, sino que primero necesita un binario enlazado con la estructura adecuada.
+
+### 5.6. Conversión al formato EFI
+Pese a que el archivo `hello.so` se encuetra enlazado, aún no presenta el formato final que UEFI espera. En ese sentido, se utiliza `objcopy` para su conversión.
 
 ``` bash
 objcopy \
@@ -446,8 +485,18 @@ objcopy \
 --target efi-app-x86_64 \
 hello.so BOOTX64.EFI
 ```
+- `--targe efi-app-x86_64`: Se ocupa de convertir el archivo al formato que el firmware reconoce como aplicación EFI.
 
-### Creación imagen FAT
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Creacion.png) 
+
+Posteriormente, se utiliza `file BOOTX64.EFI` para verificar que el formato sea correcto, esto es, `PE32+ executable (EFI application)`.
+
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Uefi.png) 
+
+### 5.7. Creación de la imagen FAT
+Para que UEFI pueda arrancar la aplicación automáticamente, el archivo debe ubicarse en la ruta estándar. Para ello, en primera instancia, se debe crear una imagen vacía para, posteriormente, formatearla.
+
+Se muestra el bloque de líneas de comando que se utilizaron:
 
 ``` bash
 dd if=/dev/zero of=fat.img bs=1M count=64
@@ -457,7 +506,15 @@ mmd -i fat.img ::/EFI/BOOT
 mcopy -i fat.img BOOTX64.EFI ::/EFI/BOOT/
 ```
 
-### Ejecución en QEMU
+- `dd if=/dev/zero of=fat.img bs=1M count=64`: Crea un archivo de 64MB lleno de ceros, aún no es un sistema de archivos, sino un contenedor vacío.
+- `mformat -i fat.img ::`: Convierte el archivo en un sistema FAT válido. Es importante esta operación ya que caso contrario, `mtools` no podrá reconocer la imagen.
+- `mmd -i fat.img ::/EFI` y `mmd -i fat.img ::/EFI/BOOT`: Estos comandos crean los directorios que UEFI busca de forma predeterminada al arrancar.
+- `mcopy -i fat.img BOOTX64.EFI ::/EFI/BOOT/`: EL archivo UEFI pasa a ubicarse en la ruta exacta esperada por el firmware.
+
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Fat.png) 
+
+### 5.8. Ejecución en QEMU
+Una vez lista la imagen FAT, se vuelve a arrancar QEMU con OVMF, con el siguiente comando:
 
 ``` bash
 sudo qemu-system-x86_64 \
@@ -465,8 +522,11 @@ sudo qemu-system-x86_64 \
 -drive if=pflash,format=raw,file=fresh_vars.fd \
 -drive file=fat.img,format=raw
 ```
+A continuación, se muestra el resultado:
 
-### Resumen
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Resultado.png) 
+
+### 5.9. Resumen de las actividades
 1) escribir hello.c
 2) gcc -> hello.o
 3) link -> hello.so
