@@ -1,3 +1,25 @@
+# Trabajo Practico N°3: Modo Protegido
+
+### Asignatura: Sistemas de Computacion
+
+**Facultad de Ciencias Exactas, Físicas y Naturales (UNC)**
+
+---
+
+* **Grupo:** Sudo Make A Sandwich
+* **Profesores:** Miguel Angel Solinas y Javier Alejandro Jorge
+
+---
+
+### Integrantes y Contacto
+
+| Nombre y Apellido | Correo Electrónico |
+| :--- | :--- |
+| **Sergio Andres Fernandez Segovia** | _sergio.fernandez.segovia@mi.unc.edu.ar_ |
+| **Enzo Leonel Laura Surco** | _enzo.laura.surco@mi.unc.edu.ar_ |
+| **Saqib Daniel Mohammad Cabrejos** | _saqib.mohammad@mi.unc.edu.ar_ |
+
+
 
 
 ## Desafio Final: Modo Protegido 
@@ -130,6 +152,200 @@ El resultado que se obtuvo fue:
 
 ### ¿Cómo sería un programa que tenga dos descriptores de memoria diferentes, uno para cada segmento (código y datos) en espacios de memoria diferenciados?
 
+Para poder responder esta pregunta, hay describir que el CPU usara siempre una misma GDT. Entonces habiendo entendido eso lo que hay que hacer es diferenciar los segmentos base tanto para la parte de codigo como para la parte de datos. Por ejemplo:
+
+```assembly
+;===========================
+; GDT
+;===========================
+
+gdt_start:
+
+gdt_null:
+    dq 0
+
+gdt_code:
+    dw 0xFFFF
+    dw 0x0000
+    db 0x00
+    db 10011010b
+    db 11001111b
+    db 0x00
+
+gdt_data:
+    dw 0xFFFF
+    dw 0x0000
+    db 0x00
+    db 10010010b
+    db 11001111b
+    db 0x00
+
+gdt_end:
+
+gdt_descriptor:
+    dw gdt_end - gdt_start - 1
+    dd gdt_start
+
+CODE_SEG equ gdt_code - gdt_start
+DATA_SEG equ gdt_data - gdt_start
+```
+
+En este caso tenemos que:
+
+```assembly
+gdt_code:
+    dw 0xFFFF ;<---------------- base low
+    dw 0x0000
+    db 0x00 ;<---------------- la direccion base es 0x00000000
+    db 10011010b
+    db 11001111b
+    db 0x00 ;<---------------- base high
+
+gdt_data:
+    dw 0xFFFF
+    dw 0x0000 ;<---------------- base low
+    db 0x00 ;<---------------- la direccion base es 0x00000000
+    db 10010010b
+    db 11001111b
+    db 0x00 ;<---------------- base high
+```
+Tanto el segmento de datos como el codigo de datos tienen la misma base, apuntando a la misma memoria, lo que plantea la pregunta seria lo siguiente:
+
+```assembly
+gdt_code:
+    dw 0xFFFF ;<---------------- base low
+    dw 0x0000
+    db 0x00 ;<---------------- la direccion base es 0x00000000
+    db 10011010b
+    db 11001111b
+    db 0x00 ;<---------------- base high
+
+gdt_data:
+    dw 0xFFFF
+    dw 0x0000 ;<---------------- base low
+    db 0x10 ;<---------------- la direccion base es 0x00100000
+    db 10010010b
+    db 11001111b
+    db 0x00 ;<---------------- base high
+```
+
+Ahora en este caso el segmento de codigo apuntara a otra region y el segmento de datos a otra teniendo distinta base. Esto es segmentacion real. El CPU usa base + offset
+
+
 ### Cambiar los bits de acceso del segmento de datos para que sea de solo lectura, intentar escribir, ¿Que sucede? ¿Que debería suceder a continuación? (revisar el teórico) Verificarlo con gdb.
 
+Si la idea es cambiar los permisos del segmento de datos para que sea de solo lectura, hay que modificar el bit de lectura y escritura del descriptor de datos. En este caso, el bit de lectura y escritura es el bit 1. Entonces, si queremos que sea de solo lectura, hay que poner el bit de lectura y escritura en 0.
+
+
+```assembly
+gdt_code:
+    dw 0xFFFF 
+    dw 0x0000
+    db 0x00 
+    db 10011010b
+    db 11001111b
+    db 0x00 
+
+gdt_data:
+    dw 0xFFFF
+    dw 0x0000 
+    db 0x10 
+    db 10010000b
+    db 11001111b
+    db 0x00 
+```
+Haciendo esto el CPU ejecute la instruccion:
+
+```assembly
+mov [edi], ax
+```
+Siendo el segmento read-only ocasionara un General Protection Fault. Que puede ser observado mediante GDB:
+
+Primero ejecutamos qemu de la siguiente manera para que no inicie el programa hasta mencionarlo con gdb:
+
+```bash
+qemu-system-i386 -drive file=protected_mode.bin,format=raw -S -s -no-reboot
+```
+Esto hara que aun no se inicialice el programa y nos el control para debugguearlo con gdb:
+
+![alt text](image-1.png)
+
+ Luego abrimos gdb y nos conectamos al proceso:
+
+```bash
+gdb
+target remote localhost:1234
+```
+
+Colocamos un breakpoint al inicio del programa:
+
+```bash
+break *0x7c00
+```
+
+En este punto al darle continue deberia poder visualizarse el programa en qemu. Pero en modo real sin saltar al modo protegido. Si continuamos dando si instruccion por instruccion deberia llegar a:
+
+```bash
+Breakpoint 1 at 0x7c00
+(gdb) c
+Continuing.
+
+Breakpoint 1, 0x00007c00 in ?? ()
+(gdb) si
+0x00007c01 in ?? ()
+(gdb) si
+0x00007c06 in ?? ()
+(gdb) si
+0x00007c09 in ?? ()
+(gdb) si
+0x00007c0d in ?? ()
+(gdb) si
+0x00007c10 in ?? ()
+(gdb) si
+0x00007c33 in ?? ()
+(gdb) si
+0x00007c37 in ?? ()
+(gdb) si
+0x00007c39 in ?? ()
+(gdb) si
+0x00007c3b in ?? ()
+(gdb) si
+[Inferior 1 (process 1) exited normally]
+```
+Esto no quiere decir que el programa no haya sido exitoso en mostrar el mensaje sino debido al error que se genero al intentar escribir en memoria no permitida. El programa termino abruptamente debido al error generado. Podemos observar qemu de esta forma, donde se puede visualizar los registros y memoria:
+
+```bash
+qemu-system-i386 -drive file=protected_mode.bin,format=raw -no-reboot -d int
+```
+El programa no termina normalmente sino que lo cierra abruptamente y en el log se puede visualizar el error que se genero al intentar escribir en memoria no permitida:
+
+```
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+check_exception old: 0xffffffff new 0xd
+.
+.
+.
+.
+check_exception old: 0x8 new 0xd
+```
+
 ### En modo protegido, ¿Con qué valor se cargan los registros de segmento? ¿Porque?
+
+
+En modo protegido, los registros de segmento no contienen direcciones físicas como en modo real, sino selectores de segmento. Estos selectores son índices que apuntan a entradas en la Global Descriptor Table (GDT) o Local Descriptor Table (LDT). Cada entrada describe un segmento, incluyendo su dirección base, tamaño y permisos de acceso. Esto permite al procesador implementar mecanismos de protección de memoria evitando que los programas rompan memoria, verificando los accesos antes de ejecutarlos y validar permisos del segmento.
+
+```assembly
+; cargamos los segmentos de datos ya no direcciones
+     mov ax, DATA_SEG
+     mov ds, ax
+     mov es, ax
+     mov ss, ax
+     mov fs, ax
+     mov gs, ax
+```
+
+
+
