@@ -209,7 +209,7 @@ gdt_data:
     db 11001111b
     db 0x00 ;<---------------- base high
 ```
-Tanto el segmento de datos como el codigo de datos tienen la misma base, apuntando a la misma memoria, lo que plantea la pregunta seria lo siguiente:
+Tanto el segmento de datos como el codigo de datos tienen la misma base, apuntando a la misma memoria, la respuesta a la pregunta seria lo siguiente:
 
 ```assembly
 gdt_code:
@@ -254,12 +254,12 @@ gdt_data:
     db 11001111b
     db 0x00 
 ```
-Haciendo esto el CPU ejecute la instruccion:
+Haciendo esto cuando el CPU ejecute la instruccion:
 
 ```assembly
 mov [edi], ax
 ```
-Siendo el segmento read-only ocasionara un General Protection Fault. Que puede ser observado mediante GDB:
+Como el segmento read-only ocasionara un General Protection Fault. Que puede ser observado mediante GDB:
 
 Primero ejecutamos qemu de la siguiente manera para que no inicie el programa hasta mencionarlo con gdb:
 
@@ -283,7 +283,7 @@ Colocamos un breakpoint al inicio del programa:
 break *0x7c00
 ```
 
-En este punto al darle continue deberia poder visualizarse el programa en qemu. Pero en modo real sin saltar al modo protegido. Si continuamos dando si instruccion por instruccion deberia llegar a:
+En este punto al darle continue deberia poder visualizarse el programa en qemu. Pero en modo real sin saltar al modo protegido. Si continuamos dando "si" instruccion por instruccion deberia llegar a:
 
 ```bash
 Breakpoint 1 at 0x7c00
