@@ -19,6 +19,36 @@
 | **Enzo Leonel Laura Surco** | _enzo.laura.surco@mi.unc.edu.ar_ |
 | **Saqib Daniel Mohammad Cabrejos** | _saqib.mohammad@mi.unc.edu.ar_ |
 
+---
+
+## Desafio: UEFI y coreboot
+
+## Desafio: Linker
+
+### Run image in QEMU
+![imagen](https://hackmd.io/_uploads/B18RlU3p-g.png)
+
+### Run imagen in Hardware
+![imagen](https://hackmd.io/_uploads/By5FYI2a-x.png)
+
+![imagen](https://hackmd.io/_uploads/H18XOw3pWe.png)
+
+![imagen](https://hackmd.io/_uploads/HyiQy-pT-e.png)
+
+## Depuracion de ejecutables con llamadas a bios int
+![imagen](https://hackmd.io/_uploads/Skd7Cv6pZg.png)
+
+![imagen](https://hackmd.io/_uploads/Hycgb_aTbl.png)
+
+![imagen](https://hackmd.io/_uploads/rkRvZua6Zl.png)
+
+![imagen](https://hackmd.io/_uploads/HktXmupTbl.png)
+
+![imagen](https://hackmd.io/_uploads/ryddm_ppZe.png)
+
+![imagen](https://hackmd.io/_uploads/B1RzEd6abe.png)
+
+---
 
 
 
