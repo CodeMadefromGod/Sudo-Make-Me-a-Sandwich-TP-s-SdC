@@ -147,7 +147,7 @@ Luego, para visualizar el resultado en qemu usamos el comando:
 
 El resultado que se obtuvo fue:
 
-![alt text](image.png)
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/desafio_final/image.png)
 
 
 ### ¿Cómo sería un programa que tenga dos descriptores de memoria diferentes, uno para cada segmento (código y datos) en espacios de memoria diferenciados?
@@ -268,7 +268,7 @@ qemu-system-i386 -drive file=protected_mode.bin,format=raw -S -s -no-reboot
 ```
 Esto hara que aun no se inicialice el programa y nos el control para debugguearlo con gdb:
 
-![alt text](image-1.png)
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/desafio_final/image-1.png)
 
  Luego abrimos gdb y nos conectamos al proceso:
 
@@ -351,7 +351,11 @@ En modo protegido, los registros de segmento no contienen direcciones físicas c
 ## 5.- Bonus Track: Introducción a UEFI
 
 ### Objetivo
-Como punto adicional en este trabajo práctico, se buscó comprender el funcionamiento básico del entorno UEFI y lograr ejecutar un mínimo código a través de una máquina virtual. Para ello, se siguieron las instrucciones del siguiente enlace `https://wiki.osdev.org/UEFI_App_Bare_Bones`. El procedimiento detallado en este tutorial consistía en la preparación del entorno, compilación del programa, creación de una imagen FAT y, finalmente, la ejecución en QEMU con firmware OVMF.
+Como punto adicional en este trabajo práctico, se buscó comprender el funcionamiento básico del entorno UEFI y lograr ejecutar un mínimo código a través de una máquina virtual antesala del TP3a. Para ello, se siguieron las instrucciones del siguiente enlace `https://wiki.osdev.org/UEFI_App_Bare_Bones`. Mas detalladamente esta seccion:
+
+![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/desafio_final/image-2.png)
+
+El procedimiento detallado en este tutorial consistía en la preparación del entorno, compilación del programa, creación de una imagen FAT y, finalmente, la ejecución en QEMU con firmware OVMF.
 
 Como una breve introducción, UEFI es el firmware moderno que reemplaza progresivamente al BIOS tradicional. Entre sus funciones se encuentra inicializar el hardware y permitir la carga de aplicaciones antes de que arranque un sistema operativo. En esta parte del trabajo se buscó comprobar, de manera práctica, cómo una aplicación UEFI puede ser compilada, empaquetada y ejecutada.
 
