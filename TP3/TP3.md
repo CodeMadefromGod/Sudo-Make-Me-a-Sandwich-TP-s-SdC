@@ -23,29 +23,231 @@
 
 ## Desafio: UEFI y coreboot
 
+### ¿Qué es UEFI? ¿Cómo puedo usarlo?
+**UEFI (Unified Extensible Firmware Interface)** es el estándar moderno que reemplaza a la BIOS tradicional. A diferencia de la BIOS, que está atada a la arquitectura de 16 bits y se comunica mediante interrupciones de software, UEFI funciona como un sistema operativo en miniatura de 32 o 64 bits. Tiene soporte nativo para redes, interfaces gráficas complejas y puede leer directamente sistemas de archivos como FAT32 dentro de discos particionados en formato GPT.
+
+En la práctica, se utiliza desarrollando "Aplicaciones EFI" (archivos con extensión ```.efi```, típicamente programados en C o Rust). En lugar de usar instrucciones puras en ensamblador como ```int $0x10```, se llama a las interfaces C estructuradas que expone la API del firmware antes de que se delegue el control al SO.
+
+Dentro de los "UEFI Runtime Services" (servicios diseñados para permanecer residentes en memoria incluso después de que arranque el kernel de Linux), una función muy crítica es ```GetVariable()``` o ```SetVariable()```. Se utiliza para leer o escribir variables no volátiles (NVRAM) a nivel de placa base, como el orden de booteo o configuraciones de hardware. Otra es ```GetTime()```, para interactuar directamente con el Real-Time Clock (RTC) del hardware.
+
+### Casos recientes de bugs de UEFI explotables
+
+**LogoFAIL (CVE-2023-5058 y relacionados):** Descubierto a finales de 2023. El código de la UEFI encargado de mostrar el logotipo del fabricante de la placa base durante la fase de arranque (fase DXE) carecía de validaciones de seguridad. Un atacante puede reemplazar el archivo de imagen original en la partición ESP por una imagen alterada. Al parsearla, se inyecta código malicioso que se ejecuta antes que el SO, saltándose por completo la verificación criptográfica de Secure Boot.
+
+**BlackLotus (CVE-2022-21894):** Es un infame bootkit moderno. Fue el primero en la naturaleza diseñado explícitamente para saltarse el Secure Boot en sistemas Windows 11 totalmente actualizados. Explotaba una vulnerabilidad en la lista de revocación de firmas durante el proceso de arranque, tomando el control total del flujo y desactivando las protecciones antimalware del kernel antes de que estas pudieran siquiera iniciarse.
+
+### ¿Qué es Converged Security and Management Engine (CSME), the Intel Management Engine BIOS Extension (Intel MEBx)?
+
+**Intel CSME:** Anteriormente conocido como "Intel Management Engine" (IME), es literalmente una computadora oculta dentro de tu computadora. Es un subsistema embebido en los chipsets de Intel que tiene su propio microprocesador independiente (generalmente basado en arquitecturas MINIX), su propia memoria, y acceso total al hardware (Direct Memory Access, control de red). Funciona sin importar si el SO está encendido, suspendido o apagado. Está diseñado para ofrecer servicios de DRM (Gestión de Derechos Digitales), TPM (Módulo de Plataforma Segura) y administración remota corporativa.
+
+**Intel MEBx (Management Engine BIOS Extension):** Es la interfaz de configuración visual para este subsistema. Es el menú clásico que permite a los administradores de TI configurar los parámetros de red del CSME, establecer contraseñas o habilitar herramientas como Intel Active Management Technology (AMT).
+
+### ¿Qué es coreboot? Ventajas y productos
+
+Es un proyecto de firmware de código abierto cuyo único objetivo es reemplazar las BIOS/UEFI propietarias y cerradas. Su filosofía es hacer la menor cantidad de cosas posibles: inicializar la placa base y la memoria RAM, e inmediatamente entregar el control a un payload (que puede ser un gestor como SeaBIOS, GRUB, o el kernel de Linux directamente).
+
+**Ventajas:**
+
+- **Velocidad extrema:** Al deshacerse de los cientos de módulos inútiles que los fabricantes empaquetan en la UEFI comercial, reduce los tiempos de inicio del hardware a milisegundos.
+
+- **Auditoría y Seguridad:** Al ser de código abierto, la comunidad puede auditarlo en busca de puertas traseras, reduciendo casi a cero la superficie de ataque para bootkits.
+
+- **Desactivación del Intel ME:** Coreboot permite a herramientas como me_cleaner neutralizar y despojar al subsistema Intel CSME/ME de casi todo su código, devolviéndole la privacidad y el control total de la máquina al usuario.
+
+**Productos que lo incorporan:**
+
+- **Google Chromebooks:** Prácticamente todos los dispositivos de la línea ChromeOS utilizan coreboot modificado por Google para asegurar arranques casi instantáneos.
+
+- Laptops de nicho para desarrolladores e ingenieros en Linux, como las de System76 (modelos Lemur, Oryx), Star Labs y los dispositivos orientados a privacidad de Purism (línea Librem).
+
 ## Desafio: Linker
 
 ### Run image in QEMU
-![imagen](https://hackmd.io/_uploads/B18RlU3p-g.png)
 
-### Run imagen in Hardware
+![imagen](https://hackmd.io/_uploads/B18RlU3p-g.png)
+Demostración del ciclo completo de desarrollo y ejecución de un MBR personalizado. En la terminal superior se observa el ensamblado (as) y enlazado (ld con formato binario plano) del código fuente para generar la imagen main.img de 512 bytes. En la ventana inferior, la máquina virtual QEMU emula el proceso de arranque, donde SeaBIOS carga exitosamente el sector generado e imprime en pantalla el mensaje del equipo.
+
+### Run image in Hardware
 ![imagen](https://hackmd.io/_uploads/By5FYI2a-x.png)
 
 ![imagen](https://hackmd.io/_uploads/H18XOw3pWe.png)
 
 ![imagen](https://hackmd.io/_uploads/HyiQy-pT-e.png)
 
+Para cumplir con los estrictos requisitos de validación de la BIOS Legacy InsydeH20, se descartó la escritura cruda del sector 0 completo, ya que esto corrompe la estructura lógica del disco. En su lugar, se implementó un procedimiento en dos fases. Primero, se generó manualmente una tabla de particiones MBR válida utilizando ```fdisk```, marcando la partición primaria como activa (flag **0x80**). Posteriormente, se realizó una inyección del código ejecutable (```main.img```) utilizando el comando ```dd``` con los parámetros ```bs=446 count=1 conv=notrunc```. Esta configuración permitió copiar exclusivamente las instrucciones en el Bootstrap code area (los primeros 446 bytes), mientras que el parámetro ```notrunc``` evitó que la herramienta truncara el archivo o sobrescribiera los 66 bytes restantes. De esta manera, se preservó intacta tanto la tabla de particiones recién creada como la firma mágica **0x55AA**, logrando exitosamente que la BIOS reconozca al USB como una unidad booteable válida.
+
+### Comparacion objdump vs hexdump
+
+#### objdump
+```bash=
+anpanman17@Sony-Vaio:~/Escritorio/SdC-2026/MBR/hello-world$ objdump -S main.o
+
+main.o:     formato del fichero elf64-x86-64
+
+
+Desensamblado de la sección .text:
+
+0000000000000000 <loop-0x5>:
+.code16
+    mov $msg, %si
+   0:	be 00 00 b4 0e       	mov    $0xeb40000,%esi
+
+0000000000000005 <loop>:
+    mov $0x0e, %ah
+loop:
+    lodsb
+   5:	ac                   	lods   %ds:(%rsi),%al
+    or %al, %al
+   6:	08 c0                	or     %al,%al
+    jz halt
+   8:	74 04                	je     e <halt>
+    int $0x10
+   a:	cd 10                	int    $0x10
+    jmp loop
+   c:	eb f7                	jmp    5 <loop>
+
+000000000000000e <halt>:
+halt:
+    hlt
+   e:	f4                   	hlt
+
+000000000000000f <msg>:
+   f:	48                   	rex.W
+  10:	65 6c                	gs insb (%dx),%es:(%rdi)
+  12:	6c                   	insb   (%dx),%es:(%rdi)
+  13:	6f                   	outsl  %ds:(%rsi),(%dx)
+  14:	20 57 6f             	and    %dl,0x6f(%rdi)
+  17:	72 6c                	jb     85 <msg+0x76>
+  19:	64 20 64 65 73       	and    %ah,%fs:0x73(%rbp,%riz,2)
+  1e:	64 65 20 55 53       	fs and %dl,%gs:0x53(%rbp)
+  23:	42 20 66 74          	rex.X and %spl,0x74(%rsi)
+  27:	2e 20 42 49          	cs and %al,0x49(%rdx)
+  2b:	4f 53                	rex.WRXB push %r11
+  2d:	20 49 6e             	and    %cl,0x6e(%rcx)
+  30:	73 79                	jae    ab <msg+0x9c>
+  32:	64 65 48 32 30       	fs rex.W xor %gs:(%rax),%sil
+  37:	2c 20                	sub    $0x20,%al
+  39:	73 6f                	jae    aa <msg+0x9b>
+  3b:	6d                   	insl   (%dx),%es:(%rdi)
+  3c:	6f                   	outsl  %ds:(%rsi),(%dx)
+  3d:	73 20                	jae    5f <msg+0x50>
+  3f:	65 6c                	gs insb (%dx),%es:(%rdi)
+  41:	20 67 72             	and    %ah,0x72(%rdi)
+  44:	75 70                	jne    b6 <msg+0xa7>
+  46:	6f                   	outsl  %ds:(%rsi),(%dx)
+  47:	20 22                	and    %ah,(%rdx)
+  49:	53                   	push   %rbx
+  4a:	75 64                	jne    b0 <msg+0xa1>
+  4c:	6f                   	outsl  %ds:(%rsi),(%dx)
+  4d:	20 4d 61             	and    %cl,0x61(%rbp)
+  50:	6b 65 20 41          	imul   $0x41,0x20(%rbp),%esp
+  54:	20 53 61             	and    %dl,0x61(%rbx)
+  57:	6e                   	outsb  %ds:(%rsi),(%dx)
+  58:	64 77 69             	fs ja  c4 <msg+0xb5>
+  5b:	63 68 22             	movsxd 0x22(%rax),%ebp
+  5e:	21 00                	and    %eax,(%rax)
+```
+
+#### hexdump
+```bash=
+anpanman17@Sony-Vaio:~/Escritorio/SdC-2026/MBR/hello-world$ hd main.img
+00000000  be 0f 7c b4 0e ac 08 c0  74 04 cd 10 eb f7 f4 48  |..|.....t......H|
+00000010  65 6c 6c 6f 20 57 6f 72  6c 64 20 64 65 73 64 65  |ello World desde|
+00000020  20 55 53 42 20 66 74 2e  20 42 49 4f 53 20 49 6e  | USB ft. BIOS In|
+00000030  73 79 64 65 48 32 30 2c  20 73 6f 6d 6f 73 20 65  |sydeH20, somos e|
+00000040  6c 20 67 72 75 70 6f 20  22 53 75 64 6f 20 4d 61  |l grupo "Sudo Ma|
+00000050  6b 65 20 41 20 53 61 6e  64 77 69 63 68 22 21 00  |ke A Sandwich"!.|
+00000060  66 2e 0f 1f 84 00 00 00  00 00 66 2e 0f 1f 84 00  |f.........f.....|
+00000070  00 00 00 00 66 2e 0f 1f  84 00 00 00 00 00 66 2e  |....f.........f.|
+00000080  0f 1f 84 00 00 00 00 00  66 2e 0f 1f 84 00 00 00  |........f.......|
+00000090  00 00 66 2e 0f 1f 84 00  00 00 00 00 66 2e 0f 1f  |..f.........f...|
+000000a0  84 00 00 00 00 00 66 2e  0f 1f 84 00 00 00 00 00  |......f.........|
+000000b0  66 2e 0f 1f 84 00 00 00  00 00 66 2e 0f 1f 84 00  |f.........f.....|
+000000c0  00 00 00 00 66 2e 0f 1f  84 00 00 00 00 00 66 2e  |....f.........f.|
+000000d0  0f 1f 84 00 00 00 00 00  66 2e 0f 1f 84 00 00 00  |........f.......|
+000000e0  00 00 66 2e 0f 1f 84 00  00 00 00 00 66 2e 0f 1f  |..f.........f...|
+000000f0  84 00 00 00 00 00 66 2e  0f 1f 84 00 00 00 00 00  |......f.........|
+00000100  66 2e 0f 1f 84 00 00 00  00 00 66 2e 0f 1f 84 00  |f.........f.....|
+00000110  00 00 00 00 66 2e 0f 1f  84 00 00 00 00 00 66 2e  |....f.........f.|
+00000120  0f 1f 84 00 00 00 00 00  66 2e 0f 1f 84 00 00 00  |........f.......|
+00000130  00 00 66 2e 0f 1f 84 00  00 00 00 00 66 2e 0f 1f  |..f.........f...|
+00000140  84 00 00 00 00 00 66 2e  0f 1f 84 00 00 00 00 00  |......f.........|
+00000150  66 2e 0f 1f 84 00 00 00  00 00 66 2e 0f 1f 84 00  |f.........f.....|
+00000160  00 00 00 00 66 2e 0f 1f  84 00 00 00 00 00 66 2e  |....f.........f.|
+00000170  0f 1f 84 00 00 00 00 00  66 2e 0f 1f 84 00 00 00  |........f.......|
+00000180  00 00 66 2e 0f 1f 84 00  00 00 00 00 66 2e 0f 1f  |..f.........f...|
+00000190  84 00 00 00 00 00 66 2e  0f 1f 84 00 00 00 00 00  |......f.........|
+000001a0  66 2e 0f 1f 84 00 00 00  00 00 66 2e 0f 1f 84 00  |f.........f.....|
+000001b0  00 00 00 00 66 2e 0f 1f  84 00 00 00 00 00 66 2e  |....f.........f.|
+000001c0  0f 1f 84 00 00 00 00 00  66 2e 0f 1f 84 00 00 00  |........f.......|
+000001d0  00 00 66 2e 0f 1f 84 00  00 00 00 00 66 2e 0f 1f  |..f.........f...|
+000001e0  84 00 00 00 00 00 66 2e  0f 1f 84 00 00 00 00 00  |......f.........|
+000001f0  66 2e 0f 1f 84 00 00 00  00 00 0f 1f 40 00 55 aa  |f...........@.U.|
+00000200
+```
+
+#### Comparación y ubicación del programa dentro de la imagen
+
+Al comparar la salida relocalizable de ```objdump``` con el binario crudo mostrado por ```hd```, podemos verificar exactamente cómo el Linker ubicó nuestro programa dentro de la estructura de 512 bytes del MBR:
+
+![image](https://hackmd.io/_uploads/SJQW1KapWx.png)
+
+- **Código útil y datos (Offset 0x0000 al 0x005F):** En la salida de ```objdump```, observamos que nuestro código ensamblador y la cadena de texto ocupan hasta el offset **0x5E**. Al revisar ```hd```, confirmamos que este bloque exacto de instrucciones y datos fue colocado al inicio de la imagen, ocupando la sección destinada al ```Bootstrap code area```.
+
+- **Relleno de alineación (Offset 0x0060 al 0x01FD):** A partir del offset **0x60**, ```hd``` muestra una repetición de bytes **(66 2e 0f 1f...)**. Estos corresponden a instrucciones NOP (secuencias que no alteran el estado del procesador) insertadas automáticamente por el Linker. Esto es el resultado directo de la directiva ```. = 0x1FE;``` en nuestro linker script, la cual obliga al ensamblador a rellenar el espacio vacío hasta alcanzar exactamente el byte 510 de la imagen.
+
+- **Firma de arranque (Offset 0x01FE al 0x01FF):** En la última línea de ```hd``` (que comienza en el offset **0x1F0**), los dos bytes finales son **55 aa**. Esto no es casualidad, sino la traducción de la directiva ```SHORT(0xAA55)```, escrita en formato Little Endian. Esta firma mágica  es el requisito indispensable a nivel de arquitectura para que la BIOS reconozca el sector como booteable y decida cederle el control a nuestro programa.
+
+#### ¿Qué es un linker? ¿Qué hace?
+Un **linker** (o enlazador) es una herramienta del sistema que toma uno o más archivos de objeto (como el ```main.o``` generado por el ensamblador) y los combina para crear un único archivo ejecutable o imagen binaria .
+
+Su trabajo principal es la **relocalización y resolución de símbolos**. Cuando el ensamblador traduce tu código fuente a lenguaje máquina, asigna direcciones relativas (empezando desde el offset 0x0) porque desconoce el lugar físico de la RAM donde se ejecutará el programa. El linker toma ese código "flotante", lo ubica en un mapa de memoria definitivo y reescribe todas las referencias incompletas (como el puntero a la variable ```msg```) para que apunten a las direcciones absolutas correctas.
+
+#### ¿Qué es la dirección que aparece en el script del linker? ¿Por qué es necesaria?
+La dirección ```. = 0x7c00;``` que aparece en el script ```(link.ld)``` indica la ubicación física exacta en la memoria RAM donde la BIOS carga tradicionalmente el primer sector de arranque (MBR).
+
+Es **estrictamente necesaria** porque el programa contiene instrucciones que acceden a posiciones de memoria absolutas. Al definir este origen en el script, le estamos dando al linker un punto de referencia espacial. Esto permite que el linker calcule matemáticamente dónde caerá cada variable e instrucción una vez que la BIOS copie los 512 bytes del pendrive a la RAM. Si omitimos esta dirección, el linker asumirá que el programa arranca en ```0x0000```, provocando que el procesador intente leer el mensaje de una parte equivocada de la memoria.
+
+#### ¿Para qué se utiliza la opción --oformat binary en el linker?
+Esta opción fuerza al linker a generar un archivo binario "plano" o crudo (flat binary), despojándolo de cualquier cabecera, tabla de símbolos o metadatos del sistema operativo.
+
+Por defecto, los linkers en Linux generan ejecutables en formato ELF (Executable and Linkable Format). Sin embargo, la BIOS no es un sistema operativo y no sabe interpretar qué significa una cabecera ELF; simplemente lee el sector 0 del disco y comienza a ejecutar ciegamente los bytes que encuentra allí uno tras otro. Al usar ```--oformat binary```, garantizamos que la salida ```main.img``` contenga única y exclusivamente tu código de máquina puro y la estructura exacta de 512 bytes exigida por el MBR.
+
 ## Depuracion de ejecutables con llamadas a bios int
+
+### Fase 1: Conexión Inicial de depuracion remota entre Qemu y GDB, Reset Vector (0xFFF0)
 ![imagen](https://hackmd.io/_uploads/Skd7Cv6pZg.png)
 
+### Fase 2: Breakpoint 1 (0x7c00) y codigo assembly del MBR
 ![imagen](https://hackmd.io/_uploads/Hycgb_aTbl.png)
 
 ![imagen](https://hackmd.io/_uploads/rkRvZua6Zl.png)
 
+Una vez establecido el breakpoint en la dirección de carga de la BIOS **(0x7C00)**, el depurador GDB detiene la ejecución justo antes de la primera instrucción de nuestro código. Al analizar la vista de desensamblado desde gdb, se observa un fenómeno particular característico de la depuración a bajo nivel: **la desalineación de decodificación**.
+
+Aunque el código fuente fue explícitamente compilado para procesadores de 16 bits mediante la directiva 
+```.code16```, el entorno del depurador (ejecutándose en un host de 64 bits) intenta decodificar la memoria en bloques más grandes, generando "falsos positivos" visuales en las instrucciones:
+
+- **Fusión de Mnemónicos (Offset 0x7c00):** En el código fuente, las dos primeras instrucciones son de 16 bits (```mov $msg, %si``` y ```mov $0x0e, %ah```). Sin embargo, GDB las agrupa e interpreta como una única instrucción moderna que opera sobre un registro extendido de 32 bits: ```mov $0xeb47c0f,%esi```. A nivel de opcodes (código máquina), los bytes en la RAM son exactamente los correctos, pero la herramienta los muestra agrupados bajo una sintaxis incorrecta.
+
+- **Sincronización del flujo (Offset 0x7c05 a 0x7c0e):** A pesar del error inicial, a partir del offset **0x7c05** el desensamblador logra realinearse con los bytes correctos, mostrando perfectamente la lógica de nuestro bucle (```lods, or, je, int $0x10, jmp y hlt```).
+
+- **Datos interpretados como instrucciones (Offset 0x7c0f en adelante):** Al llegar a la declaración de la cadena de texto (```.asciz "Hello World..."```), el depurador continúa su lectura asumiendo que los caracteres ASCII son instrucciones ejecutables. Por ejemplo, la letra 'H' (0x48 en ASCII) es interpretada como el prefijo de instrucción ```rex.W```.
+
+### Fase 3: Estrategia de Depuración y Control de Flujo
+Para validar el correcto funcionamiento del bucle de impresión en Modo Real, se definió una estrategia de depuración en GDB basada en la colocación de tres puntos de interrupción (breakpoints) estratégicos. Esto permitió aislar la ejecución de nuestro código, evitando adentrarse en las subrutinas de la interrupción de video de la BIOS (```int 0x10```).
+
+#### 1. Punto de entrada absoluto (br *0x7c00)
+La primera captura demuestra la pausa inicial exactamente en la dirección de memoria donde la BIOS vuelca el MBR. En este estado, el emulador se encuentra suspendido ("Booting from Hard Disk...") un milisegundo antes de que el procesador ejecute la instrucción de carga del puntero de la cadena de texto (```mov $msg, %si```).
+
 ![imagen](https://hackmd.io/_uploads/HktXmupTbl.png)
 
+#### 2. Aislamiento de la iteración (br *0x7c0c)
+La segunda captura ilustra la impresión del primer carácter. El breakpoint fue colocado intencionalmente en la instrucción ```jmp loop``` (offset **0x7c0c**), inmediatamente después de la llamada a la interrupción de la BIOS.
 ![imagen](https://hackmd.io/_uploads/ryddm_ppZe.png)
 
+#### 3. Condición de salida y detención (br *0x7c0e)
+La tercera captura exhibe la finalización exitosa del programa. El procesador ha alcanzado la instrucción ```hlt``` (offset **0x7c0e**), congelando el sistema tras imprimir el mensaje completo.
 ![imagen](https://hackmd.io/_uploads/B1RzEd6abe.png)
 
 ---
