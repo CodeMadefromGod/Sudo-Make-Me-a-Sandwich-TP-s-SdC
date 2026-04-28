@@ -541,3 +541,6 @@ A continuación, se muestra el resultado:
 
 ## 6. Conclusiones
 Finalmente, como punto adicional, este trabajo permitió comprender de manera práctica cómo se desarrolla y ejecuta una aplicación UEFI mínima en Linux. Esto pone en evidencia que no basta con compilar un programa en C, sino que se trata de un proceso un poco más complejo: enlazar con bibliotecas adecuadas, convertir el binario al formato EFI correcto y organizarlo dentro de una estructura FAT reconocible por el firmware. Esto conduce a una aplicación UEFI funcional que pudo ser cargada por OVMF dentro de QEMU, mostrando correctamente el mensaje en pantalla.
+
+## 7. Bibliografía
+- OSDev Wiki. (s. f.). UEFI App Bare Bones. Recuperado de https://wiki.osdev.org/UEFI_App_Bare_Bones.
