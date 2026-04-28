@@ -360,14 +360,14 @@ El procedimiento detallado en este tutorial consistía en la preparación del en
 Como una breve introducción, UEFI es el firmware moderno que reemplaza progresivamente al BIOS tradicional. Entre sus funciones se encuentra inicializar el hardware y permitir la carga de aplicaciones antes de que arranque un sistema operativo. En esta parte del trabajo se buscó comprobar, de manera práctica, cómo una aplicación UEFI puede ser compilada, empaquetada y ejecutada.
 
 ### 5.1. Preparación del Entorno
-Antes de comenzar, fue necesario instalar todas las herramientas requeridas para desesarrollar y probar aplicaciones UEFI en Linux. Se tratan de paquetes que se emplean para la emulación, firmware, compilación y manipulación de sistemas de archivos FAT.
+Antes de comenzar, fue necesario instalar todas las herramientas requeridas para desarrollar y probar aplicaciones UEFI en Linux. Se tratan de paquetes que se emplean para la emulación, firmware, compilación y manipulación de sistemas de archivos FAT.
 
 Los paquetes instalados fueron los siguientes:
 
 - `qemu-system-x86` y `qemu-utils`: Permiten emular la arquitectura x86.
 - `ovmf`: Proporciona firmware UEFI para QEMU.
 - `gnu-efi`: Incluye cabeceras y bibliotecas específicas para aplicaciones UEFI.
-- `binutils-mingw-w64` y `gcc-mingw-w64`: Permiten compilzar y enlazar el código en un formato compatible con UEFI.
+- `binutils-mingw-w64` y `gcc-mingw-w64`: Permiten compilar y enlazar el código en un formato compatible con UEFI.
 - `mtools`: Permite crear y modificar imágenes FAT sin tener que montarlas manualmente.
 - `xorriso`: Herramienta auxiliar para manipulación de imágenes.
 
@@ -438,7 +438,7 @@ gcc \
 Del bloque anterior, se observa:
 
 - `-ffreestanding`: Indica que el código no depende de un SO convencional.
-- `-fno-stack-protecto`: Desactiva protecciones pensadas para programas de usuario normales, las cuales, en este caso no son apropiadas.
+- `-fno-stack-protector`: Desactiva protecciones pensadas para programas de usuario normales, las cuales, en este caso no son apropiadas.
 - `-mno-red-zone`: Deshabilita la red zone.
 - `-c`: Complia sin enlazar, se genera el archivo objeto.
 
@@ -446,7 +446,7 @@ Del bloque anterior, se observa:
 
 
 ### 5.5. Enlazado con GNE-EFI
-Debido a que el archivo `hello.o` no es suficiente para generar una aplicación UEFI, resulta necesario enlazarlo con las bibliotecas de GNU-EFI y con el archivo de arranque específico para este retorno, obteniendo `hello.so`.
+Debido a que el archivo `hello.o` no es suficiente para generar una aplicación UEFI, resulta necesario enlazarlo con las bibliotecas de GNU-EFI y con el archivo de arranque específico para este entorno, obteniendo `hello.so`.
 
 Se trabajó con el siguiente comando:
 
@@ -465,7 +465,7 @@ hello.o \
 ```
 - `-nostdlib`: Evita enlazar la biblioteca estándar de C.
 - `crt0-efi-x86_64.o`: Archivo de arranque que prepara la ejecución en UEFI.
-- `-lefi`y `lgnuefi`: Enlazan las bibliotecas necesarias para utilizar servicios del firmware.
+- `-lefi`y `-lgnuefi`: Enlazan las bibliotecas necesarias para utilizar servicios del firmware.
 - `-T,/usr/lib/elf_x86_64_efi.lds`: Usa el script de enlace específico para aplicaciones EFI.
 - `-o hello.so`: Crea el binario enlazado.
 
@@ -474,7 +474,7 @@ hello.o \
 Este paso es bastante importante ya que UEFI no ejecuta directamente un objeto compilado, sino que primero necesita un binario enlazado con la estructura adecuada.
 
 ### 5.6. Conversión al formato EFI
-Pese a que el archivo `hello.so` se encuetra enlazado, aún no presenta el formato final que UEFI espera. En ese sentido, se utiliza `objcopy` para su conversión.
+Pese a que el archivo `hello.so` se encuentra enlazado, aún no presenta el formato final que UEFI espera. En ese sentido, se utiliza `objcopy` para su conversión.
 
 ``` bash
 objcopy \
@@ -489,7 +489,7 @@ objcopy \
 --target efi-app-x86_64 \
 hello.so BOOTX64.EFI
 ```
-- `--targe efi-app-x86_64`: Se ocupa de convertir el archivo al formato que el firmware reconoce como aplicación EFI.
+- `--target efi-app-x86_64`: Se ocupa de convertir el binario al formato ejecutable EFI para arquitectura x86_64.
 
 ![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Creacion.png) 
 
@@ -510,10 +510,10 @@ mmd -i fat.img ::/EFI/BOOT
 mcopy -i fat.img BOOTX64.EFI ::/EFI/BOOT/
 ```
 
-- `dd if=/dev/zero of=fat.img bs=1M count=64`: Crea un archivo de 64MB lleno de ceros, aún no es un sistema de archivos, sino un contenedor vacío.
+- `dd if=/dev/zero of=fat.img bs=1M count=64`: Crea un archivo de 64MB lleno de ceros (vacío).
 - `mformat -i fat.img ::`: Convierte el archivo en un sistema FAT válido. Es importante esta operación ya que caso contrario, `mtools` no podrá reconocer la imagen.
 - `mmd -i fat.img ::/EFI` y `mmd -i fat.img ::/EFI/BOOT`: Estos comandos crean los directorios que UEFI busca de forma predeterminada al arrancar.
-- `mcopy -i fat.img BOOTX64.EFI ::/EFI/BOOT/`: EL archivo UEFI pasa a ubicarse en la ruta exacta esperada por el firmware.
+- `mcopy -i fat.img BOOTX64.EFI ::/EFI/BOOT/`: El archivo UEFI pasa a ubicarse en la ruta exacta esperada por el firmware.
 
 ![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Fat.png) 
 
@@ -531,10 +531,16 @@ A continuación, se muestra el resultado:
 ![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Resultado.png) 
 
 ### 5.9. Resumen de las actividades
-1) escribir hello.c
-2) gcc -> hello.o
-3) link -> hello.so
-4) objcopy -> BOOTX64.EFI
-5) crear fat.img
-6) copiar BOOTX64.EFI dentro de fat.img
-7) arrancar QEMU con fat.img
+1) Crear `hello.c`.
+2) Compilar a `hello.o`.
+3) Enlazar a `hello.so`.
+4) Convertir a `BOOTX64.EFI`.
+5) Crear `fat.img`.
+6) Copiar `BOOTX64.EFI` dentro de `EFI/BOOT`.
+7) Arrancar QEMU con OVMF.
+
+## 6. Conclusiones
+Finalmente, como punto adicional, este trabajo permitió comprender de manera práctica cómo se desarrolla y ejecuta una aplicación UEFI mínima en Linux. Esto pone en evidencia que no basta con compilar un programa en C, sino que se trata de un proceso un poco más complejo: enlazar con bibliotecas adecuadas, convertir el binario al formato EFI correcto y organizarlo dentro de una estructura FAT reconocible por el firmware. Esto conduce a una aplicación UEFI funcional que pudo ser cargada por OVMF dentro de QEMU, mostrando correctamente el mensaje en pantalla.
+
+## 7. Bibliografía
+- OSDev Wiki. (s. f.). UEFI App Bare Bones. Recuperado de https://wiki.osdev.org/UEFI_App_Bare_Bones.
