@@ -88,7 +88,7 @@
 
 
 
-Trabajo Práctico 2: Desarrollo, compilación y análisis de seguridad
+## Trabajo Práctico 2: Desarrollo, compilación y análisis de seguridad
 
 
-Trabajo Práctico 3: Ejecución en Hardware Físico (Bare Metal)
+##Trabajo Práctico 3: Ejecución en Hardware Físico (Bare Metal)
