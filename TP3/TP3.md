@@ -21,9 +21,10 @@
 
 ---
 ## 1. Introducción
-En este trabajo práctico se abordaron aspectos relacionados al arranque y la ejecución de código en bajo nivel, con el objetivo de comprender mejor el funcionamiento de la arquitectura x86 desde sus primeras etapas de inicio hasta la ejecución en modo protegido. A lo largo del desarrollo se trabajó con un MBR personalizado, con herramientas de compilación y depuración a bajo nivel, y con la configuración necesaria para pasar del modo real al modo protegido, observando el comportamiento del procesador ante el uso de descriptores de memoria y mecanismos de protección.
+En este trabajo práctico se abordan las etapas iniciales del arranque de un sistema x86, con el objetivo de comprender la transición desde el modo real hacia el modo protegido. Para ello se crea un MBR personalizado, se utilizan herramientas de ensamblado, enlazado y depuración a bajo nivel, y se observa el comportamiento del procesador al cargar descriptores de memoria, seleccionar segmentos y aplicar mecanismos de protección. También, el trabajo propone analizar un caso en el que se modifican los permisos de acceso sobre un segmento de datos y las excepciones generadas ante las operaciones no permitidas.
 
-Además, como complemento, se realizó una introducción al entorno UEFI, con la finalidad de analizar cómo se construye y ejecuta una aplicación EFI en un entorno moderno, esto a su vez, permite entender el formato PE/COFF y el proceso de empaquetado necesario para que el firmware pueda reconocer y correr dicho ejecutable. Por lo tanto, este trabajo pretende relacionar conceptos de arranque clásico, protección de memoria y firmware moderno, integrando teoría y práctica en un mismo proceso.
+Además, como complemento, se realiza una introducción al entorno UEFI, con la finalidad de estudiar cómo se construye y ejecuta una aplicación EFI, lo que también implica conocer cómo pasar al formato PE/COFF y organizarlo en una estructura FAT reconocida por el firmware.
+
 ## 2. Desafio: UEFI y coreboot
 
 ### ¿Qué es UEFI? ¿Cómo puedo usarlo?
@@ -387,7 +388,7 @@ El resultado que se obtuvo fue:
 
 ### ¿Cómo sería un programa que tenga dos descriptores de memoria diferentes, uno para cada segmento (código y datos) en espacios de memoria diferenciados?
 
-Para poder responder esta pregunta, hay que describir que el CPU utiliza la GDT que se carga en el registro GDTR. La GDT puede contener varios descriptores y por medio de los registros de segmentos se referencia o apunta a una entrada de la GDT, ya que almacenan a los selectores.  Entonces habiendo entendido eso lo que hay que hacer es diferenciar los segmentos base tanto para la parte de codigo como para la parte de datos. Por ejemplo:
+Para poder responder esta pregunta, hay que describir que el CPU utiliza la GDT que se carga en el registro GDTR. La GDT puede contener varios descriptores y por medio de los registros de segmentos se referencia o apunta a una entrada de la GDT, ya que estos registros almacenan a los selectores. Entonces habiendo entendido eso lo que hay que hacer es diferenciar los segmentos base tanto para la parte de codigo como para la parte de datos. Por ejemplo:
 
 ```assembly
 ;===========================
@@ -493,7 +494,7 @@ Haciendo esto cuando el CPU ejecute la instrucción:
 ```assembly
 mov [edi], ax
 ```
-Como el segmento read-only ocasionará que el procesador genere una excepción del tipo General Protection Fault, la cual, debería ser atendida por un handler definido en la IDT (Interrupt Descriptor Table). Sin embargo, en este caso no se ha configurado una IDT válida, por lo tanto, el procesador no puede manejar la excepción correctamente, lo que deriva en un double fault y posteriormente en un triple fault, provocando el reinicio del sistema.
+Como el segmento read-only ocasionará que el procesador genere una excepción del tipo General Protection Fault, la cual, debería ser atendida por un handler definido en la IDT (Interrupt Descriptor Table). Sin embargo, en este caso no se ha configurado una IDT, por lo tanto, el procesador no puede manejar la excepción correctamente, produciéndose un double fault y posteriormente un triple fault que provoca el reinicio del sistema.
 
 Esto puede ser observado mediante GDB:
 
@@ -548,7 +549,7 @@ Breakpoint 1, 0x00007c00 in ?? ()
 (gdb) si
 [Inferior 1 (process 1) exited normally]
 ```
-Esto no quiere decir que el programa no haya sido exitoso en mostrar el mensaje sino debido al error que se generó al intentar escribir en memoria no permitida. El programa termino abruptamente debido al error generado. Podemos observar qemu de esta forma, donde se puede visualizar los registros y memoria:
+Esto no quiere decir que el programa haya sido exitoso en mostrar el mensaje sino debido al error que se generó al intentar escribir en memoria no permitida. El programa terminó abruptamente debido al error generado. Podemos observar qemu de esta forma, donde se puede visualizar los registros y memoria:
 
 ```bash
 qemu-system-i386 -drive file=protected_mode.bin,format=raw -no-reboot -d int
@@ -652,7 +653,7 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 En el código anterior se identifica lo siguiente:
 
 - `#include <efi.h>` y `#include <efilib.h>`: Encargados de incluir las definiciones necesarias para programar en UEFI.
-- `efi_main()`: Se trata del punto de entrada de un código o aplicación UEFI. Podría ser equivalente asimilarlo a un `main()` de un programa convencional.
+- `efi_main()`: Se trata del punto de entrada de un código o aplicación UEFI. Puede considerarse equivalente a un `main()` de un programa convencional.
 - `InitializeLib(ImageHandle, SystemTable)`: Inicializa la biblioteca GNU-EFI y permite usar funciones, en este caso en particular, `Print`.
 - `Print(u"Hello World!\r\n")` y `Print(u"From Group: Sudo Make Me a Sandwich!\r\n")`: Se llama a la función para imprimir los mensajes en la consola del firmware.
 - `while (1)`: Busca mantener la ejecución del programa para evitar que el mensaje desaparezca.
@@ -681,7 +682,7 @@ Del bloque anterior, se observa:
 ![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Compilacion.png)  
 
 
-### Enlazado con GNE-EFI
+### Enlazado con GNU-EFI
 Debido a que el archivo `hello.o` no es suficiente para generar una aplicación UEFI, resulta necesario enlazarlo con las bibliotecas de GNU-EFI y con el archivo de arranque específico para este entorno, obteniendo `hello.so`.
 
 Se trabajó con el siguiente comando:
