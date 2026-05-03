@@ -20,8 +20,11 @@
 | **Saqib Daniel Mohammad Cabrejos** | _saqib.mohammad@mi.unc.edu.ar_ |
 
 ---
+## 1. Introducción
+En este trabajo práctico se abordaron aspectos relacionados al arranque y la ejecución de código en bajo nivel, con el objetivo de comprender mejor el funcionamiento de la arquitectura x86 desde sus primeras etapas de inicio hasta la ejecución en modo protegido. A lo largo del desarrollo se trabajó con un MBR personalizado, con herramientas de compilación y depuración a bajo nivel, y con la configuración necesaria para pasar del modo real al modo protegido, observando el comportamiento del procesador ante el uso de descriptores de memoria y mecanismos de protección.
 
-## Desafio: UEFI y coreboot
+Además, como complemento, se realizó una introducción al entorno UEFI, con la finalidad de analizar cómo se construye y ejecuta una aplicación EFI en un entorno moderno, esto a su vez, permite entender el formato PE/COFF y el proceso de empaquetado necesario para que el firmware pueda reconocer y correr dicho ejecutable. Por lo tanto, este trabajo pretende relacionar conceptos de arranque clásico, protección de memoria y firmware moderno, integrando teoría y práctica en un mismo proceso.
+## 2. Desafio: UEFI y coreboot
 
 ### ¿Qué es UEFI? ¿Cómo puedo usarlo?
 **UEFI (Unified Extensible Firmware Interface)** es el estándar moderno que reemplaza a la BIOS tradicional. A diferencia de la BIOS, que está atada a la arquitectura de 16 bits y se comunica mediante interrupciones de software, UEFI funciona como un sistema operativo en miniatura de 32 o 64 bits. Tiene soporte nativo para redes, interfaces gráficas complejas y puede leer directamente sistemas de archivos como FAT32 dentro de discos particionados en formato GPT.
@@ -60,7 +63,7 @@ Es un proyecto de firmware de código abierto cuyo único objetivo es reemplazar
 
 - Laptops de nicho para desarrolladores e ingenieros en Linux, como las de System76 (modelos Lemur, Oryx), Star Labs y los dispositivos orientados a privacidad de Purism (línea Librem).
 
-## Desafio: Linker
+## 3. Desafio: Linker
 
 ### Run image in QEMU
 
@@ -384,7 +387,7 @@ El resultado que se obtuvo fue:
 
 ### ¿Cómo sería un programa que tenga dos descriptores de memoria diferentes, uno para cada segmento (código y datos) en espacios de memoria diferenciados?
 
-Para poder responder esta pregunta, hay describir que el CPU usará siempre una misma GDT. Entonces habiendo entendido eso lo que hay que hacer es diferenciar los segmentos base tanto para la parte de codigo como para la parte de datos. Por ejemplo:
+Para poder responder esta pregunta, hay que describir que el CPU utiliza la GDT que se carga en el registro GDTR. La GDT puede contener varios descriptores y por medio de los registros de segmentos se referencia o apunta a una entrada de la GDT, ya que almacenan a los selectores.  Entonces habiendo entendido eso lo que hay que hacer es diferenciar los segmentos base tanto para la parte de codigo como para la parte de datos. Por ejemplo:
 
 ```assembly
 ;===========================
@@ -441,7 +444,7 @@ gdt_data:
     db 11001111b
     db 0x00 ;<---------------- base high
 ```
-Tanto el segmento de datos como el código de datos tienen la misma base, apuntando a la misma memoria, la respuesta a la pregunta seria lo siguiente:
+Tanto el segmento de datos como el código de datos tienen la misma base, apuntando a la misma memoria. Si se desea que ambos segmentos apunten a regiones de memoria distintas, se debe asignar una base diferente a cada descriptor:
 
 ```assembly
 gdt_code:
@@ -461,8 +464,7 @@ gdt_data:
     db 0x00 ;<---------------- base high
 ```
 
-Ahora en este caso el segmento de codigo apuntará a otra región y el segmento de datos a otra teniendo distinta base. Esto es segmentación real. El CPU usa base + offset
-
+Ahora en este caso el segmento de codigo apuntará a otra región y el segmento de datos a otra teniendo distinta base. Esto corresponde a la segmentación en modo protegido, donde la dirección efectiva se obtiene como la suma entre la base del segmento definida en la GDT y el desplazamiento utilizado en la instrucción.
 
 ### Cambiar los bits de acceso del segmento de datos para que sea de sólo lectura, intentar escribir ¿Qué sucede? ¿Qué debería suceder a continuación? (revisar el teórico) Verificarlo con gdb.
 
@@ -491,7 +493,9 @@ Haciendo esto cuando el CPU ejecute la instrucción:
 ```assembly
 mov [edi], ax
 ```
-Como el segmento read-only ocasionará un General Protection Fault. Que puede ser observado mediante GDB:
+Como el segmento read-only ocasionará que el procesador genere una excepción del tipo General Protection Fault, la cual, debería ser atendida por un handler definido en la IDT (Interrupt Descriptor Table). Sin embargo, en este caso no se ha configurado una IDT válida, por lo tanto, el procesador no puede manejar la excepción correctamente, lo que deriva en un double fault y posteriormente en un triple fault, provocando el reinicio del sistema.
+
+Esto puede ser observado mediante GDB:
 
 Primero ejecutamos qemu de la siguiente manera para que no inicie el programa hasta mencionarlo con gdb:
 
@@ -544,7 +548,7 @@ Breakpoint 1, 0x00007c00 in ?? ()
 (gdb) si
 [Inferior 1 (process 1) exited normally]
 ```
-Esto no quiere decir que el programa no haya sido exitoso en mostrar el mensaje sino debido al error que se genero al intentar escribir en memoria no permitida. El programa termino abruptamente debido al error generado. Podemos observar qemu de esta forma, donde se puede visualizar los registros y memoria:
+Esto no quiere decir que el programa no haya sido exitoso en mostrar el mensaje sino debido al error que se generó al intentar escribir en memoria no permitida. El programa termino abruptamente debido al error generado. Podemos observar qemu de esta forma, donde se puede visualizar los registros y memoria:
 
 ```bash
 qemu-system-i386 -drive file=protected_mode.bin,format=raw -no-reboot -d int
@@ -591,7 +595,7 @@ El procedimiento detallado en este tutorial consistía en la preparación del en
 
 Como una breve introducción, UEFI es el firmware moderno que reemplaza progresivamente al BIOS tradicional. Entre sus funciones se encuentra inicializar el hardware y permitir la carga de aplicaciones antes de que arranque un sistema operativo. En esta parte del trabajo se buscó comprobar, de manera práctica, cómo una aplicación UEFI puede ser compilada, empaquetada y ejecutada.
 
-### 5.1. Preparación del Entorno
+### Preparación del Entorno
 Antes de comenzar, fue necesario instalar todas las herramientas requeridas para desarrollar y probar aplicaciones UEFI en Linux. Se tratan de paquetes que se emplean para la emulación, firmware, compilación y manipulación de sistemas de archivos FAT.
 
 Los paquetes instalados fueron los siguientes:
@@ -612,7 +616,7 @@ binutils-mingw-w64
 ```
 ![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Entorno.png)   
 
-### 5.2. Verificación del firmware de UEFI en QEMU
+### Verificación del firmware de UEFI en QEMU
 Una vez instalado el entorno, se debe verificar que QEMU pueda arrancar con firmware UEFI. A continuación, se muestra el comando utilizado. En dicha línea se usa `pflash` y la razón es que OVMF necesita cargar el firmware como memoria flash, de forma similar a como lo haría una placa real.
 
 ```bash
@@ -625,7 +629,7 @@ Al ejecutar este comando apareció la pantalla de TianoCore, confirmando que el 
 
 ![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Verificacion.png)  
 
-### 5.3. Creación del programa UEFI
+### Creación del programa UEFI
 En este paso, se crea el código de prueba, el cual se guarda bajo el nombre de `hello.c`. Como se comentó al inicio, se trata de un código simple que, en este caso, muestra un mensaje por pantalla. El código trabajado fue el siguiente:
 
 ``` c
@@ -654,7 +658,7 @@ En el código anterior se identifica lo siguiente:
 - `while (1)`: Busca mantener la ejecución del programa para evitar que el mensaje desaparezca.
 - `return EFI_SUCCESS`: Indica que la ejecución terminó correctamente; sin embargo, en este caso nunca llegaría a eso debido al `while(1)`.
 
-### 5.4. Compilación del código
+### Compilación del código
 Esta operación implica transformar `hello.c` en un archivo objeto `hello.o`. Seguidamente, se comparte la línea de comando para tal efecto.
 
 ``` bash
@@ -672,18 +676,19 @@ Del bloque anterior, se observa:
 - `-ffreestanding`: Indica que el código no depende de un SO convencional.
 - `-fno-stack-protector`: Desactiva protecciones pensadas para programas de usuario normales, las cuales, en este caso no son apropiadas.
 - `-mno-red-zone`: Deshabilita la red zone.
-- `-c`: Complia sin enlazar, se genera el archivo objeto.
+- `-c`: Compila sin enlazar, se genera el archivo objeto.
 
 ![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Compilacion.png)  
 
 
-### 5.5. Enlazado con GNE-EFI
+### Enlazado con GNE-EFI
 Debido a que el archivo `hello.o` no es suficiente para generar una aplicación UEFI, resulta necesario enlazarlo con las bibliotecas de GNU-EFI y con el archivo de arranque específico para este entorno, obteniendo `hello.so`.
 
 Se trabajó con el siguiente comando:
 
 ``` bash
-gcc \-nostdlib \
+gcc \
+-nostdlib \
 -Wl,-dll \
 -Wl,-shared \
 -Wl,-Bsymbolic \
@@ -705,8 +710,8 @@ hello.o \
 
 Este paso es bastante importante ya que UEFI no ejecuta directamente un objeto compilado, sino que primero necesita un binario enlazado con la estructura adecuada.
 
-### 5.6. Conversión al formato EFI
-Pese a que el archivo `hello.so` se encuentra enlazado, aún no presenta el formato final que UEFI espera. En ese sentido, se utiliza `objcopy` para su conversión.
+### Conversión al formato EFI
+Pese a que el archivo `hello.so` se encuentra enlazado, aún no presenta el formato final que UEFI espera (PE/COFF). En ese sentido, se utiliza `objcopy` para su conversión.
 
 ``` bash
 objcopy \
@@ -729,7 +734,7 @@ Posteriormente, se utiliza `file BOOTX64.EFI` para verificar que el formato sea 
 
 ![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Uefi.png) 
 
-### 5.7. Creación de la imagen FAT
+### Creación de la imagen FAT
 Para que UEFI pueda arrancar la aplicación automáticamente, el archivo debe ubicarse en la ruta estándar. Para ello, en primera instancia, se debe crear una imagen vacía para, posteriormente, formatearla.
 
 Se muestra el bloque de líneas de comando que se utilizaron:
@@ -749,7 +754,7 @@ mcopy -i fat.img BOOTX64.EFI ::/EFI/BOOT/
 
 ![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Fat.png) 
 
-### 5.8. Ejecución en QEMU
+### Ejecución en QEMU
 Una vez lista la imagen FAT, se vuelve a arrancar QEMU con OVMF, con el siguiente comando:
 
 ``` bash
@@ -762,7 +767,7 @@ A continuación, se muestra el resultado:
 
 ![](https://github.com/SergioAndresF/Sudo-Make-Me-a-Sandwich-TP-s-SdC/blob/TP3/TP3/Bonus%20Track/Imagenes/Resultado.png) 
 
-### 5.9. Resumen de las actividades
+### Resumen de las actividades
 1) Crear `hello.c`.
 2) Compilar a `hello.o`.
 3) Enlazar a `hello.so`.
@@ -772,7 +777,13 @@ A continuación, se muestra el resultado:
 7) Arrancar QEMU con OVMF.
 
 ## 6. Conclusiones
+El desarrollo de este trabajo práctico permitió comprender el proceso de la transición desde el arranque en modo real hacia el modo protegido, entendiendo que el encendido de un sistema se trata de una secuencia ordenada de etapas en las que intervienen el firmware, el procesador y las herramientas de software necesarias para adaptar el código al entorno de ejecución correspondiente.
+
+Por medio de los desafíos, los cuales requerían implementación del código en ensamblador y la posterior prueba en QEMU junto a la depuración con GDB, fue posible observar de forma directa el efecto de la GDT, los selectores de segmento y las excepciones generadas ante accesos no permitidos.
+
 Finalmente, como punto adicional, este trabajo permitió comprender de manera práctica cómo se desarrolla y ejecuta una aplicación UEFI mínima en Linux. Esto pone en evidencia que no basta con compilar un programa en C, sino que se trata de un proceso un poco más complejo: enlazar con bibliotecas adecuadas, convertir el binario al formato EFI correcto y organizarlo dentro de una estructura FAT reconocible por el firmware. Esto conduce a una aplicación UEFI funcional que pudo ser cargada por OVMF dentro de QEMU, mostrando correctamente el mensaje en pantalla.
 
 ## 7. Bibliografía
 - OSDev Wiki. (s. f.). UEFI App Bare Bones. Recuperado de https://wiki.osdev.org/UEFI_App_Bare_Bones.
+- OSDev Wiki. (s. f.). GDT Tutorial. Recuperado de https://wiki.osdev.org/GDT_Tutorial
+- Cirosantilli. (2023, 25 de octubre). common.h [Código fuente]. GitHub. https://github.com/cirosantilli/x86-bare-metal-examples/blob/master/common.h#L135
